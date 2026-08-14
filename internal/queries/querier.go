@@ -16,6 +16,7 @@ type Querier interface {
 	CountNotificationsByUser(ctx context.Context, arg CountNotificationsByUserParams) (int64, error)
 	CountPerformerSearchMatches(ctx context.Context, arg CountPerformerSearchMatchesParams) (interface{}, error)
 	CountScenesByPerformer(ctx context.Context, performerID uuid.UUID) (int64, error)
+	CountScenesByPerformerIds(ctx context.Context, dollar_1 []uuid.UUID) ([]CountScenesByPerformerIdsRow, error)
 	CountUnreadNotificationsByUserGroupedByType(ctx context.Context, userID uuid.UUID) ([]CountUnreadNotificationsByUserGroupedByTypeRow, error)
 	CountUserEditsByStatus(ctx context.Context, userID uuid.NullUUID) ([]CountUserEditsByStatusRow, error)
 	CountUsers(ctx context.Context) (int64, error)
@@ -255,7 +256,8 @@ type Querier interface {
 	GetEditVotes(ctx context.Context, editID uuid.UUID) ([]EditVote, error)
 	GetEditsByIds(ctx context.Context, dollar_1 []uuid.UUID) ([]Edit, error)
 	GetEditsByPerformer(ctx context.Context, performerID uuid.UUID) ([]Edit, error)
-	GetEditsByScene(ctx context.Context, sceneID uuid.UUID) ([]Edit, error)
+	// Get edits for multiple scenes
+	GetEditsBySceneIds(ctx context.Context, sceneIds []uuid.UUID) ([]GetEditsBySceneIdsRow, error)
 	GetEditsByStudio(ctx context.Context, studioID uuid.UUID) ([]Edit, error)
 	GetEditsByTag(ctx context.Context, tagID uuid.UUID) ([]Edit, error)
 	GetFingerprint(ctx context.Context, arg GetFingerprintParams) (Fingerprint, error)

@@ -30,6 +30,7 @@ type Loaders struct {
 	PerformerTattoosByID           BodyModificationsLoader
 	PerformerUrlsByID              URLLoader
 	PerformerIsFavoriteByID        BoolsLoader
+	PerformerSceneCountByID        IntsLoader
 	SceneByID                      SceneLoader
 	SceneImageIDsByID              UUIDsLoader
 	SceneAppearancesByID           SceneAppearancesLoader
@@ -46,6 +47,7 @@ type Loaders struct {
 	TagAliasesByID                 StringsLoader
 	TagCategoryByID                TagCategoryLoader
 	EditByID                       EditLoader
+	SceneEditsByID                 EditsLoader
 	EditCommentByID                EditCommentLoader
 	UserByID                       UserLoader
 }
@@ -158,6 +160,14 @@ func GetLoaders(ctx context.Context, fac service.Factory) *Loaders {
 			fetch: func(ids []uuid.UUID) ([][]models.PerformerScene, []error) {
 				s := fac.Scene()
 				return s.LoadAppearances(ctx, ids)
+			},
+		},
+		SceneEditsByID: EditsLoader{
+			maxBatch: 100,
+			wait:     1 * time.Millisecond,
+			fetch: func(ids []uuid.UUID) ([][]models.Edit, []error) {
+				s := fac.Edit()
+				return s.LoadEditsBySceneIds(ctx, ids)
 			},
 		},
 		SceneUrlsByID: URLLoader{
@@ -294,6 +304,14 @@ func GetLoaders(ctx context.Context, fac service.Factory) *Loaders {
 			fetch: func(ids []uuid.UUID) ([]bool, []error) {
 				s := fac.Performer()
 				return s.LoadIsFavorite(ctx, currentUser.ID, ids)
+			},
+		},
+		PerformerSceneCountByID: IntsLoader{
+			maxBatch: 1000,
+			wait:     1 * time.Millisecond,
+			fetch: func(ids []uuid.UUID) ([]int, []error) {
+				s := fac.Scene()
+				return s.LoadCountsByPerformerIds(ctx, ids)
 			},
 		},
 		StudioIsFavoriteByID: BoolsLoader{
