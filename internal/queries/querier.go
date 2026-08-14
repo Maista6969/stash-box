@@ -154,11 +154,10 @@ type Querier interface {
 	ExpandPhashNeighbors(ctx context.Context, arg ExpandPhashNeighborsParams) ([]ExpandPhashNeighborsRow, error)
 	ExpandSceneCoMembers(ctx context.Context, sceneIds []uuid.UUID) ([]ExpandSceneCoMembersRow, error)
 	FindActiveInviteKeysForUser(ctx context.Context, generatedBy uuid.UUID) ([]InviteKey, error)
-	// Returns pending edits that fulfill one of the criteria for being closed:
-	// * The full voting period has passed
-	// * The minimum voting period has passed, and the number of votes has crossed the voting threshold.
-	// The latter only applies for destructive edits. Non-destructive edits get auto-applied when sufficient votes are cast.
-	FindCompletedEdits(ctx context.Context, arg FindCompletedEditsParams) ([]Edit, error)
+	// Returns pending edits past either voting deadline, along with the tallies needed to
+	// decide their outcome in Go. The `votes` column is unusable here: a net score cannot tell
+	// a unanimous result apart from a contested one adding up to the same number.
+	FindCompletedEdits(ctx context.Context, arg FindCompletedEditsParams) ([]FindCompletedEditsRow, error)
 	FindDraft(ctx context.Context, id uuid.UUID) (Draft, error)
 	FindDraftsByUser(ctx context.Context, userID uuid.UUID) ([]Draft, error)
 	FindEdit(ctx context.Context, id uuid.UUID) (Edit, error)
