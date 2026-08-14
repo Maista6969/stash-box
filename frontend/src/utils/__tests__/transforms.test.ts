@@ -8,11 +8,9 @@ import {
   formatMeasurements,
   formatPendingEdits,
   getBraSize,
-  getImage,
   imageType,
   parseBraSize,
   parseDuration,
-  sortImageURLs,
 } from "../transforms";
 
 describe("formatCareer", () => {
@@ -167,38 +165,18 @@ describe("formatDisambiguation", () => {
   });
 });
 
-describe("sortImageURLs / getImage / imageType", () => {
+describe("imageType", () => {
   const img = (width: number, height: number) => ({
     url: `${width}x${height}`,
     width,
     height,
   });
 
-  it("sortImageURLs prefers portrait aspect when orientation=portrait", () => {
-    const out = sortImageURLs(
-      [img(100, 50), img(50, 100), img(100, 100)],
-      "portrait",
-    );
-    expect(out[0].url).toBe("50x100");
-  });
-
-  it("sortImageURLs prefers landscape aspect when orientation=landscape", () => {
-    const out = sortImageURLs(
-      [img(100, 50), img(50, 100), img(100, 100)],
-      "landscape",
-    );
-    expect(out[0].url).toBe("100x50");
-  });
-
-  it("getImage returns the first URL after sort", () => {
-    expect(getImage([img(100, 50), img(50, 100)], "portrait")).toBe("50x100");
-  });
-
-  it("imageType returns vertical for tall images", () => {
+  it("returns vertical for tall images", () => {
     expect(imageType(img(50, 100))).toBe("vertical-img");
   });
 
-  it("imageType returns horizontal otherwise", () => {
+  it("returns horizontal otherwise", () => {
     expect(imageType(img(100, 50))).toBe("horizontal-img");
     expect(imageType(undefined)).toBe("horizontal-img");
   });

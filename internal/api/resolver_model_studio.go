@@ -7,6 +7,7 @@ import (
 
 	"github.com/gofrs/uuid"
 	"github.com/stashapp/stash-box/internal/dataloader"
+	"github.com/stashapp/stash-box/internal/image"
 	"github.com/stashapp/stash-box/internal/models"
 )
 
@@ -49,7 +50,10 @@ func (r *studioResolver) Images(ctx context.Context, obj *models.Studio) ([]mode
 	if err != nil {
 		return nil, err
 	}
-	return imageList(ctx, imageIDs)
+
+	images, err := imageList(ctx, imageIDs)
+	image.OrderLandscape(images)
+	return images, err
 }
 
 func (r *studioResolver) IsFavorite(ctx context.Context, obj *models.Studio) (bool, error) {

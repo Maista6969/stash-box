@@ -18,7 +18,6 @@ import {
 import type { SearchAllQuery, SearchPerformersQuery } from "src/graphql";
 import SearchAllGQL from "src/graphql/queries/SearchAll.gql";
 import SearchPerformersGQL from "src/graphql/queries/SearchPerformers.gql";
-import { getImage } from "src/utils";
 import {
   handleResult,
   type PerformerResult,
@@ -65,7 +64,7 @@ const formatOptionLabel = ({ label, sublabel, value }: SearchResult) => (
   <div className="d-flex">
     {valueIsPerformer(value) && (
       <Thumbnail
-        image={getImage(value.images, "portrait")}
+        image={value.images[0]?.url}
         className="SearchField-thumb"
         alt={value.name}
         size={300}

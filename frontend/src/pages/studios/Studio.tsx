@@ -18,7 +18,6 @@ import { useCurrentUser } from "src/hooks";
 import {
   createHref,
   formatPendingEdits,
-  getImage,
   getUrlBySite,
   studioHref,
 } from "src/utils";
@@ -46,7 +45,7 @@ const StudioComponent: FC<Props> = ({ studio }) => {
   });
   const pendingEditCount = editData?.queryEdits.count;
 
-  const studioImage = getImage(studio.images, "landscape");
+  const studioImage = studio.images[0]?.url;
   const hasSubStudios = studio.sub_studios.count > 0;
 
   const setTab = (tab: string | null) =>
@@ -98,7 +97,7 @@ const StudioComponent: FC<Props> = ({ studio }) => {
         </div>
         {studioImage && (
           <div className="studio-photo">
-            <img src={getImage(studio.images, "landscape")} alt="Studio logo" />
+            <img src={studioImage} alt="Studio logo" />
           </div>
         )}
         <div>

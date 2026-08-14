@@ -8,7 +8,7 @@ import { Card } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import { Icon, Thumbnail } from "src/components/fragments";
 import type { SearchAllQuery } from "src/graphql";
-import { formatDuration, getImage, sceneHref } from "src/utils";
+import { formatDuration, sceneHref } from "src/utils";
 
 export type Scene = NonNullable<
   SearchAllQuery["searchScenes"]["scenes"][number]
@@ -18,7 +18,7 @@ export const SceneCard: FC<{ scene: Scene }> = ({ scene }) => (
   <Link to={sceneHref(scene)} className="SearchPage-scene">
     <Card>
       <Thumbnail
-        image={getImage(scene.images, "landscape")}
+        image={scene.images[0]?.url}
         className="SearchPage-scene-image"
         size={300}
       />

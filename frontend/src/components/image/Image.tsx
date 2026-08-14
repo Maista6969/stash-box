@@ -6,7 +6,6 @@ import {
 import cx from "classnames";
 import { type FC, useState } from "react";
 import { Icon, LoadingIndicator } from "src/components/fragments";
-import { sortImageURLs } from "src/utils";
 import ImageLightbox from "./ImageLightbox";
 
 const CLASSNAME = "Image";
@@ -71,7 +70,6 @@ const ImageComponent: FC<ImageProps> = ({
 
 interface ContainerProps {
   images: Image[] | Image | undefined;
-  orientation?: "landscape" | "portrait";
   emptyMessage?: string;
   size?: ImageSize;
   alt?: string;
@@ -84,20 +82,15 @@ interface ContainerProps {
 const ImageContainer: FC<ContainerProps> = ({
   className,
   images,
-  orientation = "landscape",
   lightbox,
   lightboxImages,
   ...props
 }) => {
   const [showLightbox, setShowLightbox] = useState(false);
 
-  const sortedImages = Array.isArray(images)
-    ? sortImageURLs(images, orientation)
-    : images
-      ? [images]
-      : [];
-  const image = sortedImages[0];
-  const galleryImages = lightboxImages ?? (lightbox ? sortedImages : undefined);
+  const imageArray = Array.isArray(images) ? images : images ? [images] : [];
+  const image = imageArray[0];
+  const galleryImages = lightboxImages ?? (lightbox ? imageArray : undefined);
 
   const aspectRatio = image ? `${image.width}/${image.height}` : "16/6";
 
@@ -120,10 +113,10 @@ const ImageContainer: FC<ContainerProps> = ({
         <span className={`${CLASSNAME}-magnify`}>
           <Icon icon={faMagnifyingGlass} />
         </span>
-        {sortedImages.length > 1 && (
+        {imageArray.length > 1 && (
           <span className={`${CLASSNAME}-count`}>
             <Icon icon={faImages} />
-            {sortedImages.length}
+            {imageArray.length}
           </span>
         )}
       </button>

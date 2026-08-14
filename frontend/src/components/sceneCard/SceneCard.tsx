@@ -4,13 +4,7 @@ import { Card } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import { Icon, Thumbnail } from "src/components/fragments";
 import type { Scene, Studio } from "src/graphql";
-import {
-  formatDuration,
-  getImage,
-  imageType,
-  sceneHref,
-  studioHref,
-} from "src/utils";
+import { formatDuration, imageType, sceneHref, studioHref } from "src/utils";
 
 type Performance = Pick<
   Scene,
@@ -30,7 +24,7 @@ const SceneCard: FC<{ scene: Performance }> = ({ scene }) => (
         <Thumbnail
           alt={scene.title}
           className={imageType(scene.images[0])}
-          image={getImage(scene.images, "landscape")}
+          image={scene.images[0]?.url}
           size={300}
         />
       </Link>

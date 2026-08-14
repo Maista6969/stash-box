@@ -223,7 +223,6 @@ export const PerformerInfo: FC<Props> = ({ performer }) => {
         <Col xs={6} className="performer-photo">
           <Image
             images={performer.images}
-            orientation="portrait"
             size={600}
             alt="Performer"
             lightbox
