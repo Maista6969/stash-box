@@ -136,6 +136,131 @@ export enum CriterionModifier {
   NOT_NULL = 'NOT_NULL'
 }
 
+/** One guide line of a crop template */
+export type CropGuide = {
+  __typename: 'CropGuide';
+  axis: CropGuideAxisEnum;
+  /**
+   * What the line is for, like "bisects the eyes", "where the thighs meet", or
+   * null when the template does not name it
+   */
+  label?: Maybe<Scalars['String']['output']>;
+  /**
+   * Whether a frame is resized around this line when the contributor holds
+   * Shift
+   *
+   * Independent of `role`, which says how closely a line is meant to be
+   * followed. A headshot's eye line is the softest line in its template (like the
+   * head and chin can be hard limits) and is still the right thing to turn a
+   * resize about, so the two cannot be the same field
+   *
+   * At most one guide per axis carries it. A template naming none on an axis
+   * resizes about the centre there
+   */
+  pivot: Scalars['Boolean']['output'];
+  /**
+   * Where the line sits, as a fraction of the canvas along its axis: 0 is the
+   * left or top edge, 1 the right or bottom. A fraction rather than a pixel
+   * because a template is drawn at one size and rendered at every other
+   */
+  position: Scalars['Float']['output'];
+  /**
+   * How closely the line is meant to be followed, where the template says. An
+   * anchor is meant to be hit; a reference is for judgement and balance
+   */
+  role?: Maybe<CropGuideRoleEnum>;
+};
+
+export enum CropGuideAxisEnum {
+  /** A vertical line, positioned across the width */
+  X = 'X',
+  /** A horizontal line, positioned down the height */
+  Y = 'Y'
+}
+
+export enum CropGuideRoleEnum {
+  ANCHOR = 'ANCHOR',
+  MARGIN = 'MARGIN',
+  REFERENCE = 'REFERENCE'
+}
+
+/**
+ * One anchor of an outline, with the control point either side of it
+ *
+ * Every segment is a cubic curve, including straight ones. Photoshop draws a
+ * straight edge as a curve whose controls sit on its anchors, so a rectangle and
+ * an ellipse arrive in the same shape
+ */
+export type CropKnot = {
+  __typename: 'CropKnot';
+  anchor: CropPoint;
+  /** The control point governing the curve arriving at this anchor */
+  control_in: CropPoint;
+  /** The control point governing the curve leaving it */
+  control_out: CropPoint;
+};
+
+/**
+ * A position on the template's canvas, as fractions of its width and height
+ *
+ * Fractions like a guide's position, and for the same reason: a template is drawn
+ * at one size and rendered at every other. Values outside 0 to 1 are legitimate:
+ * a crop box is often drawn a hair outside the canvas so its stroke does not eat
+ * into the picture
+ */
+export type CropPoint = {
+  __typename: 'CropPoint';
+  x: Scalars['Float']['output'];
+  y: Scalars['Float']['output'];
+};
+
+/** One outline drawn in a crop template */
+export type CropShape = {
+  __typename: 'CropShape';
+  /**
+   * What the template's author called the layer, like "head guide", "eyes soft
+   * anchor", or null for an unnamed layer
+   */
+  label?: Maybe<Scalars['String']['output']>;
+  subpaths: Array<CropSubpath>;
+};
+
+/**
+ * One continuous run of a shape's outline
+ *
+ * A shape can be several: a ring is an outer subpath and an inner one, and
+ * whether each closes back on itself is the difference between an outline and an
+ * arc
+ */
+export type CropSubpath = {
+  __typename: 'CropSubpath';
+  closed: Scalars['Boolean']['output'];
+  knots: Array<CropKnot>;
+};
+
+/**
+ * A crop frame, read from a Photoshop template
+ *
+ * The template file is the source of truth: the guides drawn over the cropping
+ * tool and the .psd a contributor can download for their own editor are the same
+ * bytes, so the two cannot drift
+ */
+export type CropTemplate = {
+  __typename: 'CropTemplate';
+  /**
+   * Width over height, taken from the template's canvas rather than set
+   * anywhere
+   */
+  aspect_ratio: Scalars['Float']['output'];
+  guides: Array<CropGuide>;
+  /**
+   * Outlines drawn on the template's own layers like an oval for a face to sit
+   * inside, a bar marking a margin. Guidance only: the crop is still a
+   * rectangle, and nothing here changes what the server cuts
+   */
+  shapes: Array<CropShape>;
+};
+
 export enum DateAccuracyEnum {
   DAY = 'DAY',
   MONTH = 'MONTH',
@@ -643,8 +768,40 @@ export type ImageAssignmentInput = {
 };
 
 export type ImageCreateInput = {
+  crop?: InputMaybe<ImageCropInput>;
   file?: InputMaybe<Scalars['Upload']['input']>;
   url?: InputMaybe<Scalars['String']['input']>;
+};
+
+/**
+ * A frame to cut an upload down to, in the coordinates the client is looking at.
+ *
+ * Cropping happens here rather than in the browser for two reasons. A canvas
+ * re-encode is a second lossy generation on top of whatever the contributor
+ * started with, where the server decodes once and encodes once. And images are
+ * deduplicated on a checksum of their stored bytes, which stops working if the
+ * bytes are produced by whichever encoder the uploader's browser happens to
+ * have: two people cropping the same source to the same frame would land as two
+ * images
+ */
+export type ImageCropInput = {
+  /**
+   * Degrees to rotate clockwise before cutting, for a tilted horizon. The frame
+   * above is measured against the rotated image, which is larger than the
+   * original - the same thing the client is dragging over.
+   *
+   * EXIF orientation is applied before any of this, so the coordinates are the
+   * ones a browser shows rather than the ones stored in the file
+   */
+  angle?: InputMaybe<Scalars['Float']['input']>;
+  /** Fraction of the height to keep */
+  height: Scalars['Float']['input'];
+  /** Fraction of the width to keep */
+  width: Scalars['Float']['input'];
+  /** Distance from the left edge, as a fraction of the width */
+  x: Scalars['Float']['input'];
+  /** Distance from the top edge, as a fraction of the height */
+  y: Scalars['Float']['input'];
 };
 
 export type ImageDestroyInput = {
@@ -660,6 +817,12 @@ export type ImageType = {
    * offering the second once the first is chosen.
    */
   conflicts_with: Array<ImageTypeEnum>;
+  /**
+   * The frame to crop to for this type, or null if the instance has no template
+   * for it. Only crops have one - nothing about a pose or a state of dress says
+   * anything about the shape of the picture
+   */
+  crop_template?: Maybe<CropTemplate>;
   description?: Maybe<Scalars['String']['output']>;
   /** Whether this instance uses this type. Disabled types cannot be assigned. */
   enabled: Scalars['Boolean']['output'];
@@ -3756,7 +3919,7 @@ export type ImageTypeGroupsQueryVariables = Exact<{
 }>;
 
 
-export type ImageTypeGroupsQuery = { __typename: 'Query', imageTypeGroups: Array<{ __typename: 'ImageTypeGroup', key: ImageTypeGroupEnum, name: string, description?: string | null, enabled: boolean, types: Array<{ __typename: 'ImageType', key: ImageTypeEnum, name: string, description?: string | null, enabled: boolean, conflicts_with: Array<ImageTypeEnum> }> }> };
+export type ImageTypeGroupsQuery = { __typename: 'Query', imageTypeGroups: Array<{ __typename: 'ImageTypeGroup', key: ImageTypeGroupEnum, name: string, description?: string | null, enabled: boolean, types: Array<{ __typename: 'ImageType', key: ImageTypeEnum, name: string, description?: string | null, enabled: boolean, conflicts_with: Array<ImageTypeEnum>, crop_template?: { __typename: 'CropTemplate', aspect_ratio: number, guides: Array<{ __typename: 'CropGuide', axis: CropGuideAxisEnum, position: number, role?: CropGuideRoleEnum | null, label?: string | null, pivot: boolean }>, shapes: Array<{ __typename: 'CropShape', label?: string | null, subpaths: Array<{ __typename: 'CropSubpath', closed: boolean, knots: Array<{ __typename: 'CropKnot', control_in: { __typename: 'CropPoint', x: number, y: number }, anchor: { __typename: 'CropPoint', x: number, y: number }, control_out: { __typename: 'CropPoint', x: number, y: number } }> }> }> } | null }> }> };
 
 export type MeQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -4294,7 +4457,7 @@ export const EditsDocument = {"kind":"Document","definitions":[{"kind":"Operatio
 export const FetchSiteFaviconsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"FetchSiteFavicons"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"url"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"fetchSiteFavicons"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"url"},"value":{"kind":"Variable","name":{"kind":"Name","value":"url"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"url"}},{"kind":"Field","name":{"kind":"Name","value":"image"}}]}}]}}]} as unknown as DocumentNode<FetchSiteFaviconsQuery, FetchSiteFaviconsQueryVariables>;
 export const FingerprintClustersDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"FingerprintClusters"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"FingerprintClustersInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"fingerprintClusters"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"truncated"}},{"kind":"Field","name":{"kind":"Name","value":"clusters"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"members"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"hash"}},{"kind":"Field","name":{"kind":"Name","value":"scene_submissions"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"submissions"}},{"kind":"Field","name":{"kind":"Name","value":"reports"}},{"kind":"Field","name":{"kind":"Name","value":"durations"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"duration"}},{"kind":"Field","name":{"kind":"Name","value":"count"}}]}},{"kind":"Field","name":{"kind":"Name","value":"scene"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"title"}},{"kind":"Field","name":{"kind":"Name","value":"release_date"}},{"kind":"Field","name":{"kind":"Name","value":"deleted"}},{"kind":"Field","name":{"kind":"Name","value":"duration"}},{"kind":"Field","name":{"kind":"Name","value":"studio"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"name"}}]}},{"kind":"Field","name":{"kind":"Name","value":"performers"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"as"}},{"kind":"Field","name":{"kind":"Name","value":"performer"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"disambiguation"}},{"kind":"Field","name":{"kind":"Name","value":"deleted"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"linked_fingerprints"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"hash"}},{"kind":"Field","name":{"kind":"Name","value":"submissions"}},{"kind":"Field","name":{"kind":"Name","value":"reports"}}]}}]}}]}}]}}]}}]}}]} as unknown as DocumentNode<FingerprintClustersQuery, FingerprintClustersQueryVariables>;
 export const FullPerformerDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"FullPerformer"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"findPerformer"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"PerformerFragment"}},{"kind":"Field","name":{"kind":"Name","value":"studios"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"scene_count"}},{"kind":"Field","name":{"kind":"Name","value":"studio"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"parent"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}}]}}]}}]}}]}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"URLFragment"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"URL"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"url"}},{"kind":"Field","name":{"kind":"Name","value":"site"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"icon"}},{"kind":"Field","name":{"kind":"Name","value":"highlighted"}},{"kind":"Field","name":{"kind":"Name","value":"category"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"sort_order"}}]}}]}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"ImageFragment"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Image"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"url"}},{"kind":"Field","name":{"kind":"Name","value":"width"}},{"kind":"Field","name":{"kind":"Name","value":"height"}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"TypedImageFragment"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"TypedImage"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"image"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"ImageFragment"}}]}},{"kind":"Field","name":{"kind":"Name","value":"types"}},{"kind":"Field","name":{"kind":"Name","value":"date"}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"PerformerFragment"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Performer"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"disambiguation"}},{"kind":"Field","name":{"kind":"Name","value":"deleted"}},{"kind":"Field","name":{"kind":"Name","value":"merged_into_id"}},{"kind":"Field","name":{"kind":"Name","value":"aliases"}},{"kind":"Field","name":{"kind":"Name","value":"gender"}},{"kind":"Field","name":{"kind":"Name","value":"birth_date"}},{"kind":"Field","name":{"kind":"Name","value":"death_date"}},{"kind":"Field","name":{"kind":"Name","value":"age"}},{"kind":"Field","name":{"kind":"Name","value":"height"}},{"kind":"Field","name":{"kind":"Name","value":"hair_color"}},{"kind":"Field","name":{"kind":"Name","value":"eye_color"}},{"kind":"Field","name":{"kind":"Name","value":"ethnicity"}},{"kind":"Field","name":{"kind":"Name","value":"country"}},{"kind":"Field","name":{"kind":"Name","value":"career_end_year"}},{"kind":"Field","name":{"kind":"Name","value":"career_start_year"}},{"kind":"Field","name":{"kind":"Name","value":"breast_type"}},{"kind":"Field","name":{"kind":"Name","value":"waist_size"}},{"kind":"Field","name":{"kind":"Name","value":"hip_size"}},{"kind":"Field","name":{"kind":"Name","value":"band_size"}},{"kind":"Field","name":{"kind":"Name","value":"cup_size"}},{"kind":"Field","name":{"kind":"Name","value":"tattoos"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"location"}},{"kind":"Field","name":{"kind":"Name","value":"description"}}]}},{"kind":"Field","name":{"kind":"Name","value":"piercings"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"location"}},{"kind":"Field","name":{"kind":"Name","value":"description"}}]}},{"kind":"Field","name":{"kind":"Name","value":"urls"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"URLFragment"}}]}},{"kind":"Field","name":{"kind":"Name","value":"typed_images"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"TypedImageFragment"}}]}},{"kind":"Field","name":{"kind":"Name","value":"is_favorite"}}]}}]} as unknown as DocumentNode<FullPerformerQuery, FullPerformerQueryVariables>;
-export const ImageTypeGroupsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"ImageTypeGroups"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"target"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"ImageTypeScopeEnum"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"includeDisabled"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Boolean"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"imageTypeGroups"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"target"},"value":{"kind":"Variable","name":{"kind":"Name","value":"target"}}},{"kind":"Argument","name":{"kind":"Name","value":"include_disabled"},"value":{"kind":"Variable","name":{"kind":"Name","value":"includeDisabled"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"key"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"description"}},{"kind":"Field","name":{"kind":"Name","value":"enabled"}},{"kind":"Field","name":{"kind":"Name","value":"types"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"key"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"description"}},{"kind":"Field","name":{"kind":"Name","value":"enabled"}},{"kind":"Field","name":{"kind":"Name","value":"conflicts_with"}}]}}]}}]}}]} as unknown as DocumentNode<ImageTypeGroupsQuery, ImageTypeGroupsQueryVariables>;
+export const ImageTypeGroupsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"ImageTypeGroups"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"target"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"ImageTypeScopeEnum"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"includeDisabled"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Boolean"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"imageTypeGroups"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"target"},"value":{"kind":"Variable","name":{"kind":"Name","value":"target"}}},{"kind":"Argument","name":{"kind":"Name","value":"include_disabled"},"value":{"kind":"Variable","name":{"kind":"Name","value":"includeDisabled"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"key"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"description"}},{"kind":"Field","name":{"kind":"Name","value":"enabled"}},{"kind":"Field","name":{"kind":"Name","value":"types"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"key"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"description"}},{"kind":"Field","name":{"kind":"Name","value":"enabled"}},{"kind":"Field","name":{"kind":"Name","value":"conflicts_with"}},{"kind":"Field","name":{"kind":"Name","value":"crop_template"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"aspect_ratio"}},{"kind":"Field","name":{"kind":"Name","value":"guides"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"axis"}},{"kind":"Field","name":{"kind":"Name","value":"position"}},{"kind":"Field","name":{"kind":"Name","value":"role"}},{"kind":"Field","name":{"kind":"Name","value":"label"}},{"kind":"Field","name":{"kind":"Name","value":"pivot"}}]}},{"kind":"Field","name":{"kind":"Name","value":"shapes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"label"}},{"kind":"Field","name":{"kind":"Name","value":"subpaths"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"closed"}},{"kind":"Field","name":{"kind":"Name","value":"knots"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"control_in"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"x"}},{"kind":"Field","name":{"kind":"Name","value":"y"}}]}},{"kind":"Field","name":{"kind":"Name","value":"anchor"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"x"}},{"kind":"Field","name":{"kind":"Name","value":"y"}}]}},{"kind":"Field","name":{"kind":"Name","value":"control_out"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"x"}},{"kind":"Field","name":{"kind":"Name","value":"y"}}]}}]}}]}}]}}]}}]}}]}}]}}]} as unknown as DocumentNode<ImageTypeGroupsQuery, ImageTypeGroupsQueryVariables>;
 export const MeDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"Me"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"me"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"roles"}}]}}]}}]} as unknown as DocumentNode<MeQuery, MeQueryVariables>;
 export const ModAuditsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"ModAudits"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ModAuditQueryInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"queryModAudits"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"count"}},{"kind":"Field","name":{"kind":"Name","value":"audits"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"action"}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}}]}},{"kind":"Field","name":{"kind":"Name","value":"target_id"}},{"kind":"Field","name":{"kind":"Name","value":"target_type"}},{"kind":"Field","name":{"kind":"Name","value":"data"}},{"kind":"Field","name":{"kind":"Name","value":"reason"}},{"kind":"Field","name":{"kind":"Name","value":"created_at"}}]}}]}}]}}]} as unknown as DocumentNode<ModAuditsQuery, ModAuditsQueryVariables>;
 export const PendingEditsCountDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"PendingEditsCount"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"type"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"TargetTypeEnum"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"queryEdits"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"target_type"},"value":{"kind":"Variable","name":{"kind":"Name","value":"type"}}},{"kind":"ObjectField","name":{"kind":"Name","value":"target_id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}},{"kind":"ObjectField","name":{"kind":"Name","value":"status"},"value":{"kind":"EnumValue","value":"PENDING"}},{"kind":"ObjectField","name":{"kind":"Name","value":"per_page"},"value":{"kind":"IntValue","value":"1"}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"count"}}]}}]}}]} as unknown as DocumentNode<PendingEditsCountQuery, PendingEditsCountQueryVariables>;

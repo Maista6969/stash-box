@@ -123,6 +123,90 @@ type CommentVotedEdit struct {
 
 func (CommentVotedEdit) IsNotificationData() {}
 
+// One guide line of a crop template
+type CropGuide struct {
+	Axis CropGuideAxisEnum `json:"axis"`
+	// Where the line sits, as a fraction of the canvas along its axis: 0 is the
+	// left or top edge, 1 the right or bottom. A fraction rather than a pixel
+	// because a template is drawn at one size and rendered at every other
+	Position float64 `json:"position"`
+	// How closely the line is meant to be followed, where the template says. An
+	// anchor is meant to be hit; a reference is for judgement and balance
+	Role *CropGuideRoleEnum `json:"role,omitempty"`
+	// What the line is for, like "bisects the eyes", "where the thighs meet", or
+	// null when the template does not name it
+	Label *string `json:"label,omitempty"`
+	// Whether a frame is resized around this line when the contributor holds
+	// Shift
+	//
+	// Independent of `role`, which says how closely a line is meant to be
+	// followed. A headshot's eye line is the softest line in its template (like the
+	// head and chin can be hard limits) and is still the right thing to turn a
+	// resize about, so the two cannot be the same field
+	//
+	// At most one guide per axis carries it. A template naming none on an axis
+	// resizes about the centre there
+	Pivot bool `json:"pivot"`
+}
+
+// One anchor of an outline, with the control point either side of it
+//
+// Every segment is a cubic curve, including straight ones. Photoshop draws a
+// straight edge as a curve whose controls sit on its anchors, so a rectangle and
+// an ellipse arrive in the same shape
+type CropKnot struct {
+	// The control point governing the curve arriving at this anchor
+	ControlIn *CropPoint `json:"control_in"`
+	Anchor    *CropPoint `json:"anchor"`
+	// The control point governing the curve leaving it
+	ControlOut *CropPoint `json:"control_out"`
+}
+
+// A position on the template's canvas, as fractions of its width and height
+//
+// Fractions like a guide's position, and for the same reason: a template is drawn
+// at one size and rendered at every other. Values outside 0 to 1 are legitimate:
+// a crop box is often drawn a hair outside the canvas so its stroke does not eat
+// into the picture
+type CropPoint struct {
+	X float64 `json:"x"`
+	Y float64 `json:"y"`
+}
+
+// One outline drawn in a crop template
+type CropShape struct {
+	// What the template's author called the layer, like "head guide", "eyes soft
+	// anchor", or null for an unnamed layer
+	Label    *string       `json:"label,omitempty"`
+	Subpaths []CropSubpath `json:"subpaths"`
+}
+
+// One continuous run of a shape's outline
+//
+// A shape can be several: a ring is an outer subpath and an inner one, and
+// whether each closes back on itself is the difference between an outline and an
+// arc
+type CropSubpath struct {
+	Closed bool       `json:"closed"`
+	Knots  []CropKnot `json:"knots"`
+}
+
+// A crop frame, read from a Photoshop template
+//
+// The template file is the source of truth: the guides drawn over the cropping
+// tool and the .psd a contributor can download for their own editor are the same
+// bytes, so the two cannot drift
+type CropTemplate struct {
+	// Width over height, taken from the template's canvas rather than set
+	// anywhere
+	AspectRatio float64     `json:"aspect_ratio"`
+	Guides      []CropGuide `json:"guides"`
+	// Outlines drawn on the template's own layers like an oval for a face to sit
+	// inside, a bar marking a margin. Guidance only: the crop is still a
+	// rectangle, and nothing here changes what the server cuts
+	Shapes []CropShape `json:"shapes"`
+}
+
 type DateCriterionInput struct {
 	Value    string            `json:"value"`
 	Modifier CriterionModifier `json:"modifier"`
@@ -435,6 +519,34 @@ type ImageAssignmentInput struct {
 type ImageCreateInput struct {
 	URL  *string         `json:"url,omitempty"`
 	File *graphql.Upload `json:"file,omitempty"`
+	Crop *ImageCropInput `json:"crop,omitempty"`
+}
+
+// A frame to cut an upload down to, in the coordinates the client is looking at.
+//
+// Cropping happens here rather than in the browser for two reasons. A canvas
+// re-encode is a second lossy generation on top of whatever the contributor
+// started with, where the server decodes once and encodes once. And images are
+// deduplicated on a checksum of their stored bytes, which stops working if the
+// bytes are produced by whichever encoder the uploader's browser happens to
+// have: two people cropping the same source to the same frame would land as two
+// images
+type ImageCropInput struct {
+	// Distance from the left edge, as a fraction of the width
+	X float64 `json:"x"`
+	// Distance from the top edge, as a fraction of the height
+	Y float64 `json:"y"`
+	// Fraction of the width to keep
+	Width float64 `json:"width"`
+	// Fraction of the height to keep
+	Height float64 `json:"height"`
+	// Degrees to rotate clockwise before cutting, for a tilted horizon. The frame
+	// above is measured against the rotated image, which is larger than the
+	// original - the same thing the client is dragging over.
+	//
+	// EXIF orientation is applied before any of this, so the coordinates are the
+	// ones a browser shows rather than the ones stored in the file
+	Angle *float64 `json:"angle,omitempty"`
 }
 
 type ImageDestroyInput struct {
@@ -455,6 +567,10 @@ type ImageType struct {
 	// of a pair lists the other. Assigning both is rejected; a client should stop
 	// offering the second once the first is chosen.
 	ConflictsWith []ImageTypeEnum `json:"conflicts_with"`
+	// The frame to crop to for this type, or null if the instance has no template
+	// for it. Only crops have one - nothing about a pose or a state of dress says
+	// anything about the shape of the picture
+	CropTemplate *CropTemplate `json:"crop_template,omitempty"`
 }
 
 // Which parts of the vocabulary an instance switches off.
@@ -1396,6 +1512,120 @@ func (e *CriterionModifier) UnmarshalJSON(b []byte) error {
 }
 
 func (e CriterionModifier) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type CropGuideAxisEnum string
+
+const (
+	// A vertical line, positioned across the width
+	CropGuideAxisEnumX CropGuideAxisEnum = "X"
+	// A horizontal line, positioned down the height
+	CropGuideAxisEnumY CropGuideAxisEnum = "Y"
+)
+
+var AllCropGuideAxisEnum = []CropGuideAxisEnum{
+	CropGuideAxisEnumX,
+	CropGuideAxisEnumY,
+}
+
+func (e CropGuideAxisEnum) IsValid() bool {
+	switch e {
+	case CropGuideAxisEnumX, CropGuideAxisEnumY:
+		return true
+	}
+	return false
+}
+
+func (e CropGuideAxisEnum) String() string {
+	return string(e)
+}
+
+func (e *CropGuideAxisEnum) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = CropGuideAxisEnum(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid CropGuideAxisEnum", str)
+	}
+	return nil
+}
+
+func (e CropGuideAxisEnum) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *CropGuideAxisEnum) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e CropGuideAxisEnum) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type CropGuideRoleEnum string
+
+const (
+	CropGuideRoleEnumAnchor    CropGuideRoleEnum = "ANCHOR"
+	CropGuideRoleEnumReference CropGuideRoleEnum = "REFERENCE"
+	CropGuideRoleEnumMargin    CropGuideRoleEnum = "MARGIN"
+)
+
+var AllCropGuideRoleEnum = []CropGuideRoleEnum{
+	CropGuideRoleEnumAnchor,
+	CropGuideRoleEnumReference,
+	CropGuideRoleEnumMargin,
+}
+
+func (e CropGuideRoleEnum) IsValid() bool {
+	switch e {
+	case CropGuideRoleEnumAnchor, CropGuideRoleEnumReference, CropGuideRoleEnumMargin:
+		return true
+	}
+	return false
+}
+
+func (e CropGuideRoleEnum) String() string {
+	return string(e)
+}
+
+func (e *CropGuideRoleEnum) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = CropGuideRoleEnum(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid CropGuideRoleEnum", str)
+	}
+	return nil
+}
+
+func (e CropGuideRoleEnum) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *CropGuideRoleEnum) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e CropGuideRoleEnum) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	e.MarshalGQL(&buf)
 	return buf.Bytes(), nil

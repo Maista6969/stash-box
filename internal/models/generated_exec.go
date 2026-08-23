@@ -35,6 +35,7 @@ type ResolverRoot interface {
 	EditComment() EditCommentResolver
 	EditVote() EditVoteResolver
 	Image() ImageResolver
+	ImageType() ImageTypeResolver
 	ModAudit() ModAuditResolver
 	Mutation() MutationResolver
 	Notification() NotificationResolver
@@ -102,6 +103,41 @@ type ComplexityRoot struct {
 
 	CommentVotedEdit struct {
 		Comment func(childComplexity int) int
+	}
+
+	CropGuide struct {
+		Axis     func(childComplexity int) int
+		Label    func(childComplexity int) int
+		Pivot    func(childComplexity int) int
+		Position func(childComplexity int) int
+		Role     func(childComplexity int) int
+	}
+
+	CropKnot struct {
+		Anchor     func(childComplexity int) int
+		ControlIn  func(childComplexity int) int
+		ControlOut func(childComplexity int) int
+	}
+
+	CropPoint struct {
+		X func(childComplexity int) int
+		Y func(childComplexity int) int
+	}
+
+	CropShape struct {
+		Label    func(childComplexity int) int
+		Subpaths func(childComplexity int) int
+	}
+
+	CropSubpath struct {
+		Closed func(childComplexity int) int
+		Knots  func(childComplexity int) int
+	}
+
+	CropTemplate struct {
+		AspectRatio func(childComplexity int) int
+		Guides      func(childComplexity int) int
+		Shapes      func(childComplexity int) int
 	}
 
 	DownvoteOwnEdit struct {
@@ -260,6 +296,7 @@ type ComplexityRoot struct {
 
 	ImageType struct {
 		ConflictsWith func(childComplexity int) int
+		CropTemplate  func(childComplexity int) int
 		Description   func(childComplexity int) int
 		Enabled       func(childComplexity int) int
 		Key           func(childComplexity int) int
@@ -891,6 +928,9 @@ type EditVoteResolver interface {
 type ImageResolver interface {
 	URL(ctx context.Context, obj *Image) (string, error)
 }
+type ImageTypeResolver interface {
+	CropTemplate(ctx context.Context, obj *ImageType) (*CropTemplate, error)
+}
 type ModAuditResolver interface {
 	Action(ctx context.Context, obj *ModAudit) (ModAuditActionEnum, error)
 	User(ctx context.Context, obj *ModAudit) (*User, error)
@@ -1298,6 +1338,114 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.CommentVotedEdit.Comment(childComplexity), true
+
+	case "CropGuide.axis":
+		if e.ComplexityRoot.CropGuide.Axis == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CropGuide.Axis(childComplexity), true
+	case "CropGuide.label":
+		if e.ComplexityRoot.CropGuide.Label == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CropGuide.Label(childComplexity), true
+	case "CropGuide.pivot":
+		if e.ComplexityRoot.CropGuide.Pivot == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CropGuide.Pivot(childComplexity), true
+	case "CropGuide.position":
+		if e.ComplexityRoot.CropGuide.Position == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CropGuide.Position(childComplexity), true
+	case "CropGuide.role":
+		if e.ComplexityRoot.CropGuide.Role == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CropGuide.Role(childComplexity), true
+
+	case "CropKnot.anchor":
+		if e.ComplexityRoot.CropKnot.Anchor == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CropKnot.Anchor(childComplexity), true
+	case "CropKnot.control_in":
+		if e.ComplexityRoot.CropKnot.ControlIn == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CropKnot.ControlIn(childComplexity), true
+	case "CropKnot.control_out":
+		if e.ComplexityRoot.CropKnot.ControlOut == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CropKnot.ControlOut(childComplexity), true
+
+	case "CropPoint.x":
+		if e.ComplexityRoot.CropPoint.X == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CropPoint.X(childComplexity), true
+	case "CropPoint.y":
+		if e.ComplexityRoot.CropPoint.Y == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CropPoint.Y(childComplexity), true
+
+	case "CropShape.label":
+		if e.ComplexityRoot.CropShape.Label == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CropShape.Label(childComplexity), true
+	case "CropShape.subpaths":
+		if e.ComplexityRoot.CropShape.Subpaths == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CropShape.Subpaths(childComplexity), true
+
+	case "CropSubpath.closed":
+		if e.ComplexityRoot.CropSubpath.Closed == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CropSubpath.Closed(childComplexity), true
+	case "CropSubpath.knots":
+		if e.ComplexityRoot.CropSubpath.Knots == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CropSubpath.Knots(childComplexity), true
+
+	case "CropTemplate.aspect_ratio":
+		if e.ComplexityRoot.CropTemplate.AspectRatio == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CropTemplate.AspectRatio(childComplexity), true
+	case "CropTemplate.guides":
+		if e.ComplexityRoot.CropTemplate.Guides == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CropTemplate.Guides(childComplexity), true
+	case "CropTemplate.shapes":
+		if e.ComplexityRoot.CropTemplate.Shapes == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CropTemplate.Shapes(childComplexity), true
 
 	case "DownvoteOwnEdit.edit":
 		if e.ComplexityRoot.DownvoteOwnEdit.Edit == nil {
@@ -1821,6 +1969,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.ImageType.ConflictsWith(childComplexity), true
+	case "ImageType.crop_template":
+		if e.ComplexityRoot.ImageType.CropTemplate == nil {
+			break
+		}
+
+		return e.ComplexityRoot.ImageType.CropTemplate(childComplexity), true
 	case "ImageType.description":
 		if e.ComplexityRoot.ImageType.Description == nil {
 			break
@@ -5069,6 +5223,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputIDCriterionInput,
 		ec.unmarshalInputImageAssignmentInput,
 		ec.unmarshalInputImageCreateInput,
+		ec.unmarshalInputImageCropInput,
 		ec.unmarshalInputImageDestroyInput,
 		ec.unmarshalInputImageTypeEnabledInput,
 		ec.unmarshalInputImageTypeOrderInput,
@@ -5550,6 +5705,38 @@ type Image {
 input ImageCreateInput {
   url: String
   file: Upload
+  crop: ImageCropInput
+}
+
+"""
+A frame to cut an upload down to, in the coordinates the client is looking at.
+
+Cropping happens here rather than in the browser for two reasons. A canvas
+re-encode is a second lossy generation on top of whatever the contributor
+started with, where the server decodes once and encodes once. And images are
+deduplicated on a checksum of their stored bytes, which stops working if the
+bytes are produced by whichever encoder the uploader's browser happens to
+have: two people cropping the same source to the same frame would land as two
+images
+"""
+input ImageCropInput {
+  """Distance from the left edge, as a fraction of the width"""
+  x: Float!
+  """Distance from the top edge, as a fraction of the height"""
+  y: Float!
+  """Fraction of the width to keep"""
+  width: Float!
+  """Fraction of the height to keep"""
+  height: Float!
+  """
+  Degrees to rotate clockwise before cutting, for a tilted horizon. The frame
+  above is measured against the rotated image, which is larger than the
+  original - the same thing the client is dragging over.
+
+  EXIF orientation is applied before any of this, so the coordinates are the
+  ones a browser shows rather than the ones stored in the file
+  """
+  angle: Float = 0
 }
 
 input ImageUpdateInput {
@@ -5763,6 +5950,131 @@ type ImageType {
   offering the second once the first is chosen.
   """
   conflicts_with: [ImageTypeEnum!]!
+  """
+  The frame to crop to for this type, or null if the instance has no template
+  for it. Only crops have one - nothing about a pose or a state of dress says
+  anything about the shape of the picture
+  """
+  crop_template: CropTemplate
+}
+
+"""
+A crop frame, read from a Photoshop template
+
+The template file is the source of truth: the guides drawn over the cropping
+tool and the .psd a contributor can download for their own editor are the same
+bytes, so the two cannot drift
+"""
+type CropTemplate {
+  """
+  Width over height, taken from the template's canvas rather than set
+  anywhere
+  """
+  aspect_ratio: Float!
+  guides: [CropGuide!]!
+  """
+  Outlines drawn on the template's own layers like an oval for a face to sit
+  inside, a bar marking a margin. Guidance only: the crop is still a
+  rectangle, and nothing here changes what the server cuts
+  """
+  shapes: [CropShape!]!
+}
+
+"""One outline drawn in a crop template"""
+type CropShape {
+  """
+  What the template's author called the layer, like "head guide", "eyes soft
+  anchor", or null for an unnamed layer
+  """
+  label: String
+  subpaths: [CropSubpath!]!
+}
+
+"""
+One continuous run of a shape's outline
+
+A shape can be several: a ring is an outer subpath and an inner one, and
+whether each closes back on itself is the difference between an outline and an
+arc
+"""
+type CropSubpath {
+  closed: Boolean!
+  knots: [CropKnot!]!
+}
+
+"""
+One anchor of an outline, with the control point either side of it
+
+Every segment is a cubic curve, including straight ones. Photoshop draws a
+straight edge as a curve whose controls sit on its anchors, so a rectangle and
+an ellipse arrive in the same shape
+"""
+type CropKnot {
+  """The control point governing the curve arriving at this anchor"""
+  control_in: CropPoint!
+  anchor: CropPoint!
+  """The control point governing the curve leaving it"""
+  control_out: CropPoint!
+}
+
+"""
+A position on the template's canvas, as fractions of its width and height
+
+Fractions like a guide's position, and for the same reason: a template is drawn
+at one size and rendered at every other. Values outside 0 to 1 are legitimate:
+a crop box is often drawn a hair outside the canvas so its stroke does not eat
+into the picture
+"""
+type CropPoint {
+  x: Float!
+  y: Float!
+}
+
+"""One guide line of a crop template"""
+type CropGuide {
+  axis: CropGuideAxisEnum!
+  """
+  Where the line sits, as a fraction of the canvas along its axis: 0 is the
+  left or top edge, 1 the right or bottom. A fraction rather than a pixel
+  because a template is drawn at one size and rendered at every other
+  """
+  position: Float!
+  """
+  How closely the line is meant to be followed, where the template says. An
+  anchor is meant to be hit; a reference is for judgement and balance
+  """
+  role: CropGuideRoleEnum
+  """
+  What the line is for, like "bisects the eyes", "where the thighs meet", or
+  null when the template does not name it
+  """
+  label: String
+  """
+  Whether a frame is resized around this line when the contributor holds
+  Shift
+
+  Independent of ` + "`" + `role` + "`" + `, which says how closely a line is meant to be
+  followed. A headshot's eye line is the softest line in its template (like the
+  head and chin can be hard limits) and is still the right thing to turn a
+  resize about, so the two cannot be the same field
+
+  At most one guide per axis carries it. A template naming none on an axis
+  resizes about the centre there
+  """
+  pivot: Boolean!
+}
+
+enum CropGuideAxisEnum {
+  """A vertical line, positioned across the width"""
+  X
+  """A horizontal line, positioned down the height"""
+  Y
+}
+
+enum CropGuideRoleEnum {
+  ANCHOR
+  REFERENCE
+  MARGIN
 }
 
 """
@@ -7601,6 +7913,76 @@ func (ec *executionContext) childFields_ClusterSceneSubmission(ctx context.Conte
 	return nil, fmt.Errorf("no field named %q was found under type ClusterSceneSubmission", field.Name)
 }
 
+func (ec *executionContext) childFields_CropGuide(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "axis":
+		return ec.fieldContext_CropGuide_axis(ctx, field)
+	case "position":
+		return ec.fieldContext_CropGuide_position(ctx, field)
+	case "role":
+		return ec.fieldContext_CropGuide_role(ctx, field)
+	case "label":
+		return ec.fieldContext_CropGuide_label(ctx, field)
+	case "pivot":
+		return ec.fieldContext_CropGuide_pivot(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type CropGuide", field.Name)
+}
+
+func (ec *executionContext) childFields_CropKnot(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "control_in":
+		return ec.fieldContext_CropKnot_control_in(ctx, field)
+	case "anchor":
+		return ec.fieldContext_CropKnot_anchor(ctx, field)
+	case "control_out":
+		return ec.fieldContext_CropKnot_control_out(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type CropKnot", field.Name)
+}
+
+func (ec *executionContext) childFields_CropPoint(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "x":
+		return ec.fieldContext_CropPoint_x(ctx, field)
+	case "y":
+		return ec.fieldContext_CropPoint_y(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type CropPoint", field.Name)
+}
+
+func (ec *executionContext) childFields_CropShape(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "label":
+		return ec.fieldContext_CropShape_label(ctx, field)
+	case "subpaths":
+		return ec.fieldContext_CropShape_subpaths(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type CropShape", field.Name)
+}
+
+func (ec *executionContext) childFields_CropSubpath(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "closed":
+		return ec.fieldContext_CropSubpath_closed(ctx, field)
+	case "knots":
+		return ec.fieldContext_CropSubpath_knots(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type CropSubpath", field.Name)
+}
+
+func (ec *executionContext) childFields_CropTemplate(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "aspect_ratio":
+		return ec.fieldContext_CropTemplate_aspect_ratio(ctx, field)
+	case "guides":
+		return ec.fieldContext_CropTemplate_guides(ctx, field)
+	case "shapes":
+		return ec.fieldContext_CropTemplate_shapes(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type CropTemplate", field.Name)
+}
+
 func (ec *executionContext) childFields_Draft(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 	switch field.Name {
 	case "id":
@@ -7847,6 +8229,8 @@ func (ec *executionContext) childFields_ImageType(ctx context.Context, field gra
 		return ec.fieldContext_ImageType_enabled(ctx, field)
 	case "conflicts_with":
 		return ec.fieldContext_ImageType_conflicts_with(ctx, field)
+	case "crop_template":
+		return ec.fieldContext_ImageType_crop_template(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type ImageType", field.Name)
 }
@@ -10749,6 +11133,460 @@ func (ec *executionContext) fieldContext_CommentVotedEdit_comment(_ context.Cont
 	return fc, nil
 }
 
+func (ec *executionContext) _CropGuide_axis(ctx context.Context, field graphql.CollectedField, obj *CropGuide) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CropGuide_axis(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Axis, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v CropGuideAxisEnum) graphql.Marshaler {
+			return ec.marshalNCropGuideAxisEnum2githubᚗcomᚋstashappᚋstashᚑboxᚋinternalᚋmodelsᚐCropGuideAxisEnum(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_CropGuide_axis(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("CropGuide", field, false, false, errors.New("field of type CropGuideAxisEnum does not have child fields"))
+}
+
+func (ec *executionContext) _CropGuide_position(ctx context.Context, field graphql.CollectedField, obj *CropGuide) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CropGuide_position(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Position, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v float64) graphql.Marshaler {
+			return ec.marshalNFloat2float64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_CropGuide_position(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("CropGuide", field, false, false, errors.New("field of type Float does not have child fields"))
+}
+
+func (ec *executionContext) _CropGuide_role(ctx context.Context, field graphql.CollectedField, obj *CropGuide) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CropGuide_role(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Role, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *CropGuideRoleEnum) graphql.Marshaler {
+			return ec.marshalOCropGuideRoleEnum2ᚖgithubᚗcomᚋstashappᚋstashᚑboxᚋinternalᚋmodelsᚐCropGuideRoleEnum(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_CropGuide_role(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("CropGuide", field, false, false, errors.New("field of type CropGuideRoleEnum does not have child fields"))
+}
+
+func (ec *executionContext) _CropGuide_label(ctx context.Context, field graphql.CollectedField, obj *CropGuide) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CropGuide_label(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Label, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_CropGuide_label(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("CropGuide", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _CropGuide_pivot(ctx context.Context, field graphql.CollectedField, obj *CropGuide) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CropGuide_pivot(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Pivot, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_CropGuide_pivot(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("CropGuide", field, false, false, errors.New("field of type Boolean does not have child fields"))
+}
+
+func (ec *executionContext) _CropKnot_control_in(ctx context.Context, field graphql.CollectedField, obj *CropKnot) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CropKnot_control_in(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ControlIn, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *CropPoint) graphql.Marshaler {
+			return ec.marshalNCropPoint2ᚖgithubᚗcomᚋstashappᚋstashᚑboxᚋinternalᚋmodelsᚐCropPoint(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_CropKnot_control_in(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CropKnot",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_CropPoint(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CropKnot_anchor(ctx context.Context, field graphql.CollectedField, obj *CropKnot) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CropKnot_anchor(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Anchor, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *CropPoint) graphql.Marshaler {
+			return ec.marshalNCropPoint2ᚖgithubᚗcomᚋstashappᚋstashᚑboxᚋinternalᚋmodelsᚐCropPoint(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_CropKnot_anchor(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CropKnot",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_CropPoint(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CropKnot_control_out(ctx context.Context, field graphql.CollectedField, obj *CropKnot) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CropKnot_control_out(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ControlOut, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *CropPoint) graphql.Marshaler {
+			return ec.marshalNCropPoint2ᚖgithubᚗcomᚋstashappᚋstashᚑboxᚋinternalᚋmodelsᚐCropPoint(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_CropKnot_control_out(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CropKnot",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_CropPoint(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CropPoint_x(ctx context.Context, field graphql.CollectedField, obj *CropPoint) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CropPoint_x(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.X, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v float64) graphql.Marshaler {
+			return ec.marshalNFloat2float64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_CropPoint_x(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("CropPoint", field, false, false, errors.New("field of type Float does not have child fields"))
+}
+
+func (ec *executionContext) _CropPoint_y(ctx context.Context, field graphql.CollectedField, obj *CropPoint) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CropPoint_y(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Y, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v float64) graphql.Marshaler {
+			return ec.marshalNFloat2float64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_CropPoint_y(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("CropPoint", field, false, false, errors.New("field of type Float does not have child fields"))
+}
+
+func (ec *executionContext) _CropShape_label(ctx context.Context, field graphql.CollectedField, obj *CropShape) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CropShape_label(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Label, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_CropShape_label(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("CropShape", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _CropShape_subpaths(ctx context.Context, field graphql.CollectedField, obj *CropShape) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CropShape_subpaths(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Subpaths, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []CropSubpath) graphql.Marshaler {
+			return ec.marshalNCropSubpath2ᚕgithubᚗcomᚋstashappᚋstashᚑboxᚋinternalᚋmodelsᚐCropSubpathᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_CropShape_subpaths(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CropShape",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_CropSubpath(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CropSubpath_closed(ctx context.Context, field graphql.CollectedField, obj *CropSubpath) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CropSubpath_closed(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Closed, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_CropSubpath_closed(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("CropSubpath", field, false, false, errors.New("field of type Boolean does not have child fields"))
+}
+
+func (ec *executionContext) _CropSubpath_knots(ctx context.Context, field graphql.CollectedField, obj *CropSubpath) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CropSubpath_knots(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Knots, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []CropKnot) graphql.Marshaler {
+			return ec.marshalNCropKnot2ᚕgithubᚗcomᚋstashappᚋstashᚑboxᚋinternalᚋmodelsᚐCropKnotᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_CropSubpath_knots(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CropSubpath",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_CropKnot(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CropTemplate_aspect_ratio(ctx context.Context, field graphql.CollectedField, obj *CropTemplate) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CropTemplate_aspect_ratio(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.AspectRatio, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v float64) graphql.Marshaler {
+			return ec.marshalNFloat2float64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_CropTemplate_aspect_ratio(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("CropTemplate", field, false, false, errors.New("field of type Float does not have child fields"))
+}
+
+func (ec *executionContext) _CropTemplate_guides(ctx context.Context, field graphql.CollectedField, obj *CropTemplate) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CropTemplate_guides(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Guides, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []CropGuide) graphql.Marshaler {
+			return ec.marshalNCropGuide2ᚕgithubᚗcomᚋstashappᚋstashᚑboxᚋinternalᚋmodelsᚐCropGuideᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_CropTemplate_guides(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CropTemplate",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_CropGuide(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CropTemplate_shapes(ctx context.Context, field graphql.CollectedField, obj *CropTemplate) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CropTemplate_shapes(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Shapes, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []CropShape) graphql.Marshaler {
+			return ec.marshalNCropShape2ᚕgithubᚗcomᚋstashappᚋstashᚑboxᚋinternalᚋmodelsᚐCropShapeᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_CropTemplate_shapes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CropTemplate",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_CropShape(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _DownvoteOwnEdit_edit(ctx context.Context, field graphql.CollectedField, obj *DownvoteOwnEdit) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -12965,6 +13803,38 @@ func (ec *executionContext) _ImageType_conflicts_with(ctx context.Context, field
 }
 func (ec *executionContext) fieldContext_ImageType_conflicts_with(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	return graphql.NewScalarFieldContext("ImageType", field, false, false, errors.New("field of type ImageTypeEnum does not have child fields"))
+}
+
+func (ec *executionContext) _ImageType_crop_template(ctx context.Context, field graphql.CollectedField, obj *ImageType) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_ImageType_crop_template(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return ec.Resolvers.ImageType().CropTemplate(ctx, obj)
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *CropTemplate) graphql.Marshaler {
+			return ec.marshalOCropTemplate2ᚖgithubᚗcomᚋstashappᚋstashᚑboxᚋinternalᚋmodelsᚐCropTemplate(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_ImageType_crop_template(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ImageType",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_CropTemplate(ctx, field)
+		},
+	}
+	return fc, nil
 }
 
 func (ec *executionContext) _ImageTypeGroup_key(ctx context.Context, field graphql.CollectedField, obj *ImageTypeGroup) (ret graphql.Marshaler) {
@@ -30400,7 +31270,7 @@ func (ec *executionContext) unmarshalInputImageCreateInput(ctx context.Context, 
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"url", "file"}
+	fieldsInOrder := [...]string{"url", "file", "crop"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -30421,6 +31291,75 @@ func (ec *executionContext) unmarshalInputImageCreateInput(ctx context.Context, 
 				return it, err
 			}
 			it.File = data
+		case "crop":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("crop"))
+			data, err := ec.unmarshalOImageCropInput2ᚖgithubᚗcomᚋstashappᚋstashᚑboxᚋinternalᚋmodelsᚐImageCropInput(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Crop = data
+		}
+	}
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputImageCropInput(ctx context.Context, obj any) (ImageCropInput, error) {
+	var it ImageCropInput
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	if _, present := asMap["angle"]; !present {
+		asMap["angle"] = 0
+	}
+
+	fieldsInOrder := [...]string{"x", "y", "width", "height", "angle"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "x":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("x"))
+			data, err := ec.unmarshalNFloat2float64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.X = data
+		case "y":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("y"))
+			data, err := ec.unmarshalNFloat2float64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Y = data
+		case "width":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("width"))
+			data, err := ec.unmarshalNFloat2float64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Width = data
+		case "height":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("height"))
+			data, err := ec.unmarshalNFloat2float64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Height = data
+		case "angle":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("angle"))
+			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Angle = data
 		}
 	}
 	return it, nil
@@ -35287,6 +36226,286 @@ func (ec *executionContext) _CommentVotedEdit(ctx context.Context, sel ast.Selec
 	return out
 }
 
+var cropGuideImplementors = []string{"CropGuide"}
+
+func (ec *executionContext) _CropGuide(ctx context.Context, sel ast.SelectionSet, obj *CropGuide) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, cropGuideImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("CropGuide")
+		case "axis":
+			out.Values[i] = ec._CropGuide_axis(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "position":
+			out.Values[i] = ec._CropGuide_position(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "role":
+			out.Values[i] = ec._CropGuide_role(ctx, field, obj)
+		case "label":
+			out.Values[i] = ec._CropGuide_label(ctx, field, obj)
+		case "pivot":
+			out.Values[i] = ec._CropGuide_pivot(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
+
+	for label, dfs := range deferred {
+		ec.ProcessDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var cropKnotImplementors = []string{"CropKnot"}
+
+func (ec *executionContext) _CropKnot(ctx context.Context, sel ast.SelectionSet, obj *CropKnot) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, cropKnotImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("CropKnot")
+		case "control_in":
+			out.Values[i] = ec._CropKnot_control_in(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "anchor":
+			out.Values[i] = ec._CropKnot_anchor(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "control_out":
+			out.Values[i] = ec._CropKnot_control_out(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
+
+	for label, dfs := range deferred {
+		ec.ProcessDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var cropPointImplementors = []string{"CropPoint"}
+
+func (ec *executionContext) _CropPoint(ctx context.Context, sel ast.SelectionSet, obj *CropPoint) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, cropPointImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("CropPoint")
+		case "x":
+			out.Values[i] = ec._CropPoint_x(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "y":
+			out.Values[i] = ec._CropPoint_y(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
+
+	for label, dfs := range deferred {
+		ec.ProcessDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var cropShapeImplementors = []string{"CropShape"}
+
+func (ec *executionContext) _CropShape(ctx context.Context, sel ast.SelectionSet, obj *CropShape) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, cropShapeImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("CropShape")
+		case "label":
+			out.Values[i] = ec._CropShape_label(ctx, field, obj)
+		case "subpaths":
+			out.Values[i] = ec._CropShape_subpaths(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
+
+	for label, dfs := range deferred {
+		ec.ProcessDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var cropSubpathImplementors = []string{"CropSubpath"}
+
+func (ec *executionContext) _CropSubpath(ctx context.Context, sel ast.SelectionSet, obj *CropSubpath) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, cropSubpathImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("CropSubpath")
+		case "closed":
+			out.Values[i] = ec._CropSubpath_closed(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "knots":
+			out.Values[i] = ec._CropSubpath_knots(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
+
+	for label, dfs := range deferred {
+		ec.ProcessDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var cropTemplateImplementors = []string{"CropTemplate"}
+
+func (ec *executionContext) _CropTemplate(ctx context.Context, sel ast.SelectionSet, obj *CropTemplate) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, cropTemplateImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("CropTemplate")
+		case "aspect_ratio":
+			out.Values[i] = ec._CropTemplate_aspect_ratio(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "guides":
+			out.Values[i] = ec._CropTemplate_guides(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "shapes":
+			out.Values[i] = ec._CropTemplate_shapes(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
+
+	for label, dfs := range deferred {
+		ec.ProcessDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var downvoteOwnEditImplementors = []string{"DownvoteOwnEdit", "NotificationData"}
 
 func (ec *executionContext) _DownvoteOwnEdit(ctx context.Context, sel ast.SelectionSet, obj *DownvoteOwnEdit) graphql.Marshaler {
@@ -37412,35 +38631,68 @@ func (ec *executionContext) _ImageType(ctx context.Context, sel ast.SelectionSet
 		case "key":
 			out.Values[i] = ec._ImageType_key(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "name":
 			out.Values[i] = ec._ImageType_name(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "description":
 			out.Values[i] = ec._ImageType_description(ctx, field, obj)
 		case "sort_order":
 			out.Values[i] = ec._ImageType_sort_order(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "valid_types":
 			out.Values[i] = ec._ImageType_valid_types(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "enabled":
 			out.Values[i] = ec._ImageType_enabled(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "conflicts_with":
 			out.Values[i] = ec._ImageType_conflicts_with(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
+		case "crop_template":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._ImageType_crop_template(ctx, field, obj)
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -45645,6 +46897,106 @@ func (ec *executionContext) marshalNCriterionModifier2githubᚗcomᚋstashappᚋ
 	return v
 }
 
+func (ec *executionContext) marshalNCropGuide2githubᚗcomᚋstashappᚋstashᚑboxᚋinternalᚋmodelsᚐCropGuide(ctx context.Context, sel ast.SelectionSet, v CropGuide) graphql.Marshaler {
+	return ec._CropGuide(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNCropGuide2ᚕgithubᚗcomᚋstashappᚋstashᚑboxᚋinternalᚋmodelsᚐCropGuideᚄ(ctx context.Context, sel ast.SelectionSet, v []CropGuide) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNCropGuide2githubᚗcomᚋstashappᚋstashᚑboxᚋinternalᚋmodelsᚐCropGuide(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) unmarshalNCropGuideAxisEnum2githubᚗcomᚋstashappᚋstashᚑboxᚋinternalᚋmodelsᚐCropGuideAxisEnum(ctx context.Context, v any) (CropGuideAxisEnum, error) {
+	var res CropGuideAxisEnum
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNCropGuideAxisEnum2githubᚗcomᚋstashappᚋstashᚑboxᚋinternalᚋmodelsᚐCropGuideAxisEnum(ctx context.Context, sel ast.SelectionSet, v CropGuideAxisEnum) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) marshalNCropKnot2githubᚗcomᚋstashappᚋstashᚑboxᚋinternalᚋmodelsᚐCropKnot(ctx context.Context, sel ast.SelectionSet, v CropKnot) graphql.Marshaler {
+	return ec._CropKnot(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNCropKnot2ᚕgithubᚗcomᚋstashappᚋstashᚑboxᚋinternalᚋmodelsᚐCropKnotᚄ(ctx context.Context, sel ast.SelectionSet, v []CropKnot) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNCropKnot2githubᚗcomᚋstashappᚋstashᚑboxᚋinternalᚋmodelsᚐCropKnot(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNCropPoint2ᚖgithubᚗcomᚋstashappᚋstashᚑboxᚋinternalᚋmodelsᚐCropPoint(ctx context.Context, sel ast.SelectionSet, v *CropPoint) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._CropPoint(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNCropShape2githubᚗcomᚋstashappᚋstashᚑboxᚋinternalᚋmodelsᚐCropShape(ctx context.Context, sel ast.SelectionSet, v CropShape) graphql.Marshaler {
+	return ec._CropShape(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNCropShape2ᚕgithubᚗcomᚋstashappᚋstashᚑboxᚋinternalᚋmodelsᚐCropShapeᚄ(ctx context.Context, sel ast.SelectionSet, v []CropShape) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNCropShape2githubᚗcomᚋstashappᚋstashᚑboxᚋinternalᚋmodelsᚐCropShape(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNCropSubpath2githubᚗcomᚋstashappᚋstashᚑboxᚋinternalᚋmodelsᚐCropSubpath(ctx context.Context, sel ast.SelectionSet, v CropSubpath) graphql.Marshaler {
+	return ec._CropSubpath(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNCropSubpath2ᚕgithubᚗcomᚋstashappᚋstashᚑboxᚋinternalᚋmodelsᚐCropSubpathᚄ(ctx context.Context, sel ast.SelectionSet, v []CropSubpath) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNCropSubpath2githubᚗcomᚋstashappᚋstashᚑboxᚋinternalᚋmodelsᚐCropSubpath(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
 func (ec *executionContext) unmarshalNDate2string(ctx context.Context, v any) (string, error) {
 	res, err := graphql.UnmarshalString(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -46129,6 +47481,22 @@ func (ec *executionContext) marshalNFingerprintSubmissionResult2ᚕgithubᚗcom�
 	}
 
 	return ret
+}
+
+func (ec *executionContext) unmarshalNFloat2float64(ctx context.Context, v any) (float64, error) {
+	res, err := graphql.UnmarshalFloatContext(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNFloat2float64(ctx context.Context, sel ast.SelectionSet, v float64) graphql.Marshaler {
+	_ = sel
+	res := graphql.MarshalFloatContext(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return graphql.WrapContextMarshaler(ctx, res)
 }
 
 func (ec *executionContext) unmarshalNGenderEnum2githubᚗcomᚋstashappᚋstashᚑboxᚋinternalᚋmodelsᚐGenderEnum(ctx context.Context, v any) (GenderEnum, error) {
@@ -48018,6 +49386,29 @@ func (ec *executionContext) marshalOBreastTypeEnum2ᚖgithubᚗcomᚋstashappᚋ
 	return v
 }
 
+func (ec *executionContext) unmarshalOCropGuideRoleEnum2ᚖgithubᚗcomᚋstashappᚋstashᚑboxᚋinternalᚋmodelsᚐCropGuideRoleEnum(ctx context.Context, v any) (*CropGuideRoleEnum, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(CropGuideRoleEnum)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOCropGuideRoleEnum2ᚖgithubᚗcomᚋstashappᚋstashᚑboxᚋinternalᚋmodelsᚐCropGuideRoleEnum(ctx context.Context, sel ast.SelectionSet, v *CropGuideRoleEnum) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
+}
+
+func (ec *executionContext) marshalOCropTemplate2ᚖgithubᚗcomᚋstashappᚋstashᚑboxᚋinternalᚋmodelsᚐCropTemplate(ctx context.Context, sel ast.SelectionSet, v *CropTemplate) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._CropTemplate(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalODateCriterionInput2ᚖgithubᚗcomᚋstashappᚋstashᚑboxᚋinternalᚋmodelsᚐDateCriterionInput(ctx context.Context, v any) (*DateCriterionInput, error) {
 	if v == nil {
 		return nil, nil
@@ -48223,6 +49614,23 @@ func (ec *executionContext) marshalOFingerprintSubmissionType2ᚖgithubᚗcomᚋ
 	return v
 }
 
+func (ec *executionContext) unmarshalOFloat2ᚖfloat64(ctx context.Context, v any) (*float64, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalFloatContext(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOFloat2ᚖfloat64(ctx context.Context, sel ast.SelectionSet, v *float64) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	_ = sel
+	res := graphql.MarshalFloatContext(*v)
+	return graphql.WrapContextMarshaler(ctx, res)
+}
+
 func (ec *executionContext) marshalOFuzzyDate2ᚖgithubᚗcomᚋstashappᚋstashᚑboxᚋinternalᚋmodelsᚐFuzzyDate(ctx context.Context, sel ast.SelectionSet, v *FuzzyDate) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -48398,6 +49806,14 @@ func (ec *executionContext) unmarshalOImageAssignmentInput2ᚕgithubᚗcomᚋsta
 		}
 	}
 	return res, nil
+}
+
+func (ec *executionContext) unmarshalOImageCropInput2ᚖgithubᚗcomᚋstashappᚋstashᚑboxᚋinternalᚋmodelsᚐImageCropInput(ctx context.Context, v any) (*ImageCropInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputImageCropInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalOImageTypeGroupEnum2ᚕgithubᚗcomᚋstashappᚋstashᚑboxᚋinternalᚋmodelsᚐImageTypeGroupEnumᚄ(ctx context.Context, v any) ([]ImageTypeGroupEnum, error) {

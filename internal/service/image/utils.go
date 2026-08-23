@@ -14,6 +14,7 @@ import (
 
 	issvg "github.com/h2non/go-is-svg"
 
+	imagepkg "github.com/stashapp/stash-box/internal/image"
 	"github.com/stashapp/stash-box/internal/models"
 )
 
@@ -60,4 +61,24 @@ func calculateChecksum(file io.Reader) (string, error) {
 	}
 	checksum := hex.EncodeToString(hasher.Sum(nil))
 	return checksum, nil
+}
+
+// cropUpload cuts an upload down to the frame a client asked for
+func cropUpload(file []byte, input models.ImageCropInput) ([]byte, error) {
+	rect := imagepkg.CropRect{
+		X:      input.X,
+		Y:      input.Y,
+		Width:  input.Width,
+		Height: input.Height,
+	}
+	if input.Angle != nil {
+		rect.Angle = *input.Angle
+	}
+
+	// Image doesn't need to change
+	if rect.IsIdentity() {
+		return file, nil
+	}
+
+	return imagepkg.Crop(file, rect)
 }

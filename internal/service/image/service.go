@@ -18,6 +18,10 @@ import (
 	"github.com/stashapp/stash-box/internal/storage"
 )
 
+const maxUploadBytes = int64(10 * 1024 * 1024)
+
+var errUploadTooBig = errors.New("file too big")
+
 type Image struct {
 	queries *queries.Queries
 	withTxn queries.WithTxnFunc
@@ -60,14 +64,37 @@ func (s *Image) Create(ctx context.Context, input models.ImageCreateInput) (*mod
 
 	// handle image upload
 	if input.File != nil {
-		if input.File.Size > int64(10*1024*1024) {
-			return nil, errors.New("file too big")
+		if input.File.Size > maxUploadBytes {
+			return nil, errUploadTooBig
 		}
 
+		// ReadFull rather than Read: a single Read may return early on a
+		// multipart upload, and a short read here yields a truncated image
+		// that still decodes and then gets cropped and stored as the master
 		file := make([]byte, input.File.Size)
-		if _, err := input.File.File.Read(file); err != nil {
+		if _, err := io.ReadFull(input.File.File, file); err != nil {
 			return nil, err
 		}
+
+		// Before the checksum, so everything downstream - deduplication,
+		// dimensions, what gets written - is about the image that will
+		// actually exist. Two contributors cropping the same source to the
+		// same frame produce the same bytes and land as one image, which is
+		// the property a crop done in the browser would quietly lose
+		if input.Crop != nil {
+			cropped, err := cropUpload(file, *input.Crop)
+			if err != nil {
+				return nil, err
+			}
+			// Checked again on the way out: the limit is about what gets
+			// stored, and re-encoding is not guaranteed to shrink what it was
+			// given. Straightening a flat PNG can grow it outright
+			if int64(len(cropped)) > maxUploadBytes {
+				return nil, errUploadTooBig
+			}
+			file = cropped
+		}
+
 		fileReader := bytes.NewReader(file)
 
 		checksum, err := calculateChecksum(fileReader)
