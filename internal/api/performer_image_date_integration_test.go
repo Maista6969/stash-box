@@ -37,7 +37,7 @@ func (s *performerImageDateTestRunner) datesOf(performerID uuid.UUID) map[uuid.U
 	return byImage
 }
 
-func (s *performerImageDateTestRunner) testTakenDateFormats() {
+func (s *performerImageDateTestRunner) testImageDateFormats() {
 	image, err := s.createTestImage(400, 600)
 	assert.NoError(s.t, err)
 
@@ -262,9 +262,9 @@ func (s *performerImageDateTestRunner) testNullClearsDate() {
 	assert.Nil(s.t, s.datesOf(performerID)[image.ID], "a null date clears it")
 }
 
-func TestTakenDateFormats(t *testing.T) {
+func TestImageDateFormats(t *testing.T) {
 	s := createPerformerImageDateTestRunner(t)
-	s.testTakenDateFormats()
+	s.testImageDateFormats()
 }
 
 func TestDateOnlyEditOnUnlabelledImage(t *testing.T) {

@@ -147,8 +147,10 @@ test("admin switches a type off and it stops being offered", async ({
       .locator('input[type="file"]')
       .first()
       .setInputFiles(tinyJpegPath());
-    await editPage.getByRole("button", { name: "Upload", exact: true }).click();
-    await expect(editPage.getByText(/Uploading image/i)).toHaveCount(0, {
+    await editPage.getByRole("button", { name: "Upload" }).click();
+    await expect(
+      editPage.getByRole("button", { name: "Upload" }),
+    ).toHaveCount(0, {
       timeout: 15_000,
     });
 

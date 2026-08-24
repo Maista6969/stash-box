@@ -10,6 +10,10 @@ import {
 import { graphqlAs } from "../../support/helpers/graphql";
 import { approveEdit } from "../../support/helpers/workflow";
 import { tinyJpegPath } from "../../support/fixtures/tiny-jpeg";
+import {
+  squarePngPath,
+  SQUARE_PNG_SIZE,
+} from "../../support/fixtures/square-png";
 
 test("studio image upload via UI: edit lands with the uploaded image attached", async ({
   editPage,
@@ -23,19 +27,26 @@ test("studio image upload via UI: edit lands with the uploaded image attached", 
   await editPage.waitForLoadState("networkidle");
   await editPage.getByRole("tab", { name: "Images" }).click();
 
-  // EditImages: file picker → "Upload" button → imageCreate mutation. Each
-  // step is explicit; setInputFiles alone doesn't fire the upload.
+  // EditImages: file picker → crop step → imageCreate mutation. Each step is
+  // explicit; setInputFiles alone does not fire the upload. The button reads
+  // "Upload" rather than "Crop and upload" because no frame has been chosen,
+  // which is what these tests want - the crop itself is covered separately
   const fileInput = editPage.locator('input[type="file"]').first();
   await fileInput.setInputFiles(tinyJpegPath());
-  await editPage.getByRole("button", { name: "Upload", exact: true }).click();
+  await editPage.getByRole("button", { name: "Upload" }).click();
 
-  // The "Uploading image..." spinner shows while the mutation is in flight;
-  // once it clears, the image preview is in place.
-  await expect(editPage.getByText(/Uploading image/i)).toHaveCount(0, {
-    timeout: 15_000,
-  });
+  // The crop step disappears once the mutation lands and the image is in the
+  // form, so its buttons going away is the signal the upload finished. The
+  // match is deliberately loose: the button reads "Uploading..." in between,
+  // and an exact match would count it as already gone
+  await expect(editPage.getByRole("button", { name: "Upload" })).toHaveCount(
+    0,
+    {
+      timeout: 15_000,
+    },
+  );
 
-  // Submit the edit from the Confirm tab.
+  // Submit the edit from the Confirm tab
   await editPage.getByRole("tab", { name: "Confirm" }).click();
   await editPage.locator('textarea[name="note"]').fill("attach image via e2e");
   await expect(
@@ -48,7 +59,7 @@ test("studio image upload via UI: edit lands with the uploaded image attached", 
   await approveEdit(moderatePage, editId);
 
   // Studio should now have at least one image with the dimensions libvips
-  // returned for our 1x1 JFIF.
+  // returned for our 1x1 JFIF
   const verify = await adminApi();
   const data = await gql<{
     findStudio: {
@@ -173,10 +184,13 @@ test("performer image labels via UI: dropdowns and date reach typed_images", asy
     .locator('input[type="file"]')
     .first()
     .setInputFiles(tinyJpegPath());
-  await editPage.getByRole("button", { name: "Upload", exact: true }).click();
-  await expect(editPage.getByText(/Uploading image/i)).toHaveCount(0, {
-    timeout: 15_000,
-  });
+  await editPage.getByRole("button", { name: "Upload" }).click();
+  await expect(editPage.getByRole("button", { name: "Upload" })).toHaveCount(
+    0,
+    {
+      timeout: 15_000,
+    },
+  );
 
   // Labelling happens in the lightbox, on one image at a time
   await editPage.locator(".ImageInput-image").first().click();
@@ -235,10 +249,13 @@ test("performer page shows each image's labels", async ({
     .locator('input[type="file"]')
     .first()
     .setInputFiles(tinyJpegPath());
-  await editPage.getByRole("button", { name: "Upload", exact: true }).click();
-  await expect(editPage.getByText(/Uploading image/i)).toHaveCount(0, {
-    timeout: 15_000,
-  });
+  await editPage.getByRole("button", { name: "Upload" }).click();
+  await expect(editPage.getByRole("button", { name: "Upload" })).toHaveCount(
+    0,
+    {
+      timeout: 15_000,
+    },
+  );
 
   await editPage.locator(".ImageInput-image").first().click();
   await editPage.waitForSelector(".ImageLightbox-editor", { timeout: 15_000 });
@@ -266,4 +283,94 @@ test("performer page shows each image's labels", async ({
   await expect(labels).toBeVisible();
   await expect(labels.getByText("Candid")).toBeVisible();
   await expect(labels.getByText("2021")).toBeVisible();
+});
+
+test("performer image crop via UI: the frame drawn is the image stored", async ({
+  editPage,
+  moderatePage,
+}) => {
+  const admin = await adminApi();
+  const performer = await createPerformer(admin, { name: uniq("CropPerf") });
+  await admin.dispose();
+
+  await editPage.goto(`/performers/${performer.id}/edit`);
+  await editPage.waitForLoadState("networkidle");
+  await editPage.getByRole("tab", { name: "Images" }).click();
+
+  await editPage
+    .locator('input[type="file"]')
+    .first()
+    .setInputFiles(squarePngPath());
+
+  await expect(editPage.getByRole("button", { name: "Upload" })).toBeVisible();
+
+  // Choosing the crop is what applies its template: one control, so a chosen
+  // frame and a chosen label cannot disagree
+  await editPage.locator(".CropStep .EditImages-labels-select").click();
+  await editPage
+    .locator(".react-select__option", { hasText: "Face" })
+    .first()
+    .click();
+
+  const handle = editPage.getByRole("button", { name: "Resize se" });
+  await expect(handle).toBeVisible({ timeout: 15_000 });
+  await expect(
+    editPage.getByRole("button", { name: "Crop and upload" }),
+  ).toBeVisible();
+
+  // A real pointer drag, which is the whole reason this test is here: the
+  // frame's geometry is unit-tested, but nothing else drives it through an
+  // actual browser
+  const box = await handle.boundingBox();
+  if (!box) throw new Error("the resize handle has no box to drag");
+  await editPage.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await editPage.mouse.down();
+  await editPage.mouse.move(box.x - 60, box.y - 60, { steps: 10 });
+  await editPage.mouse.up();
+
+  await editPage.getByRole("button", { name: "Crop and upload" }).click();
+  await expect(
+    editPage.getByRole("button", { name: "Crop and upload" }),
+  ).toHaveCount(0, { timeout: 20_000 });
+
+  await editPage.getByRole("tab", { name: "Confirm" }).click();
+  await editPage.locator('textarea[name="note"]').fill("crop image via e2e");
+  await expect(
+    editPage.getByRole("button", { name: "Submit Edit" }),
+  ).toBeEnabled({ timeout: 15_000 });
+  await editPage.getByRole("button", { name: "Submit Edit" }).click();
+  await editPage.waitForURL(/\/edits\/[0-9a-f-]+/i, { timeout: 15_000 });
+  await approveEdit(moderatePage, editPage.url().split("/").pop() ?? "");
+
+  const verify = await adminApi();
+  const data = await gql<{
+    findPerformer: {
+      typed_images: {
+        types: string[];
+        image: { width: number; height: number };
+      }[];
+    } | null;
+  }>(
+    verify,
+    `query($id: ID!) {
+       findPerformer(id: $id) {
+         typed_images { types image { width height } }
+       }
+     }`,
+    { id: performer.id },
+  );
+  await verify.dispose();
+
+  const [stored] = data.findPerformer?.typed_images ?? [];
+  expect(stored?.types).toContain("CROP_FACE");
+
+  // The server cut what the frame described: the square went in, a portrait
+  // came out. Asserting the region rather than merely "something changed" is
+  // what makes this catch a crop applied to the wrong part of the image.
+  // The exact proportions are pinned by the Go integration tests and the crop
+  // arithmetic by its unit suites; portrait-out-of-a-square is what proves the
+  // journey cut the right region
+  const { width, height } = stored.image;
+  expect(width).toBeLessThan(SQUARE_PNG_SIZE);
+  expect(height).toBeGreaterThan(width);
 });
