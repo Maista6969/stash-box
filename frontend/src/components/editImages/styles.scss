@@ -1,3 +1,5 @@
+$crop-gutter: min(7rem, 18%);
+
 .EditImages {
   &-drop {
     align-items: center;
@@ -54,6 +56,7 @@
       .react-select__menu {
         min-width: 20rem;
         width: max-content;
+        z-index: 10;
       }
     }
 
@@ -134,5 +137,76 @@
         opacity: 1;
       }
     }
+  }
+
+  &-actions-roomy {
+    padding-left: $crop-gutter;
+  }
+}
+
+.CropStep {
+  // Fills the column instead of being sized by what is written in it
+  //
+  // This is the whole width the picture is measured against: the stage below is
+  // width:100% of this box. As a plain flex item, that width is shrink-to-fit,
+  // so the longest line of text in the step decides how big the image is drawn
+  flex: 1;
+  // min-width:0 because a flex item will not shrink below its content by
+  // default, which would hand the width back to the text and take the ellipsis
+  // below with it.
+  min-width: 0;
+
+  // Room to the left for the guide labels, which sit outside the frame in
+  // line with what they name, see $crop-gutter which is shared with the action
+  // row below so the two line up rather than the buttons sitting under the
+  // frame's guide-label margin instead of the frame itself.
+  //
+  // Only where a labelled guide could ever appear. Reserved for the whole
+  // session once it applies, so choosing a crop with guides never narrows
+  // the picture out from under whoever is looking at it -- but an entity
+  // with no templates at all, which is scenes and studios today, never has
+  // that session, and the margin would only be stolen from the picture for
+  // nothing
+  &-roomy {
+    padding-left: $crop-gutter;
+  }
+
+  &-loading {
+    align-items: center;
+    display: flex;
+    justify-content: center;
+    min-height: 200px;
+    text-align: center;
+  }
+
+  // The template a chosen crop applies, named above the picture it applies to
+  &-template {
+    align-items: baseline;
+    display: flex;
+    font-size: 0.85rem;
+    gap: 0.75rem;
+    height: 1.4em;
+    justify-content: space-between;
+    line-height: 1.4;
+    margin-bottom: 0.5rem;
+
+    &-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    &-empty {
+      opacity: 0.6;
+    }
+
+    &-link {
+      flex: none;
+      white-space: nowrap;
+    }
+  }
+
+  &-labels {
+    margin-top: 1rem;
   }
 }

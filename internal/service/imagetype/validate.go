@@ -32,7 +32,7 @@ func ValidateAssignments(
 	// Checked before anything needing the vocabulary, so a date-only
 	// submission does not pay for a lookup it has no use for
 	for _, assignment := range assignments {
-		if err := validateTakenDate(assignment.ImageID, assignment.Date); err != nil {
+		if err := validateImageDate(assignment.ImageID, assignment.Date); err != nil {
 			return err
 		}
 	}
@@ -251,10 +251,10 @@ func conflictBetween(imageID uuid.UUID, types []models.ImageTypeEnum, conflicts 
 	return nil
 }
 
-// validateTakenDate accepts the three partial ISO 8601 precisions the schema
+// validateImageDate accepts the three partial ISO 8601 precisions the schema
 // already uses for uncertain dates, checked here because the column is text:
 // nothing downstream would reject 2019-13
-func validateTakenDate(imageID uuid.UUID, date *string) error {
+func validateImageDate(imageID uuid.UUID, date *string) error {
 	if err := models.ValidateFuzzyString(date); err != nil {
 		return fmt.Errorf("image %s has an invalid date %q: expected YYYY, YYYY-MM or YYYY-MM-DD",
 			imageID, *date)

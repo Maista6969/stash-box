@@ -115,6 +115,12 @@ button.Image {
     justify-content: center;
     min-width: 0;
 
+    padding-top: 1rem;
+
+    &-guided {
+      padding-left: min(8rem, 18%);
+    }
+
     .Image {
       flex: 1;
       min-height: 0;
@@ -123,6 +129,8 @@ button.Image {
     img {
       object-fit: contain;
       object-position: center;
+      height: 100%;
+      width: 100%;
     }
   }
 
@@ -253,4 +261,22 @@ button.Image {
       right: 0;
     }
   }
+}
+
+// Sits in the caption line next to the dimensions, so turning the guides off
+// is where you are already looking when they are in the way
+.ImageLightbox-guide-toggle {
+  font-size: inherit;
+  padding: 0;
+  vertical-align: baseline;
+}
+
+.ImageLightbox-off-aspect {
+  opacity: 0.7;
+}
+
+.ImageLightbox-overlay-box {
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
 }

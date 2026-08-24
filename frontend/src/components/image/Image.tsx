@@ -5,6 +5,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import cx from "classnames";
 import { type FC, type ReactNode, useState } from "react";
+import type { CropTemplateInfo } from "src/components/cropFrame";
 import { Icon, LoadingIndicator } from "src/components/fragments";
 import ImageLightbox from "./ImageLightbox";
 
@@ -68,6 +69,19 @@ const ImageComponent: FC<ImageProps> = ({
   );
 };
 
+export interface LightboxProps {
+  /** Labels keyed by image id, shown over each image */
+  labels?: Record<string, string[]>;
+  /**
+   * The crop template each image claims, keyed by image id: its guides are
+   * drawn over the image, and its shape is what the stored dimensions get
+   * checked against
+   */
+  cropTemplates?: Record<string, CropTemplateInfo>;
+  /** Makes the lightbox an editor for whichever image is focused */
+  renderEditor?: (image: Image) => ReactNode;
+}
+
 interface ContainerProps {
   images: Image[] | Image | undefined;
   emptyMessage?: string;
@@ -80,10 +94,7 @@ interface ContainerProps {
   // Rendered inside the frame, which is sized to the image's aspect ratio so
   // an absolutely positioned corner lands on the image and not on letterboxing
   overlay?: ReactNode;
-  // Labels keyed by image id, shown over each image in the lightbox
-  labels?: Record<string, string[]>;
-  // Makes the lightbox an editor for whichever image is focused
-  renderEditor?: (image: Image) => ReactNode;
+  lightboxProps?: LightboxProps;
 }
 
 const ImageContainer: FC<ContainerProps> = ({
@@ -92,8 +103,7 @@ const ImageContainer: FC<ContainerProps> = ({
   lightbox,
   lightboxImages,
   overlay,
-  labels,
-  renderEditor,
+  lightboxProps,
   ...props
 }) => {
   const [showLightbox, setShowLightbox] = useState(false);
@@ -134,8 +144,7 @@ const ImageContainer: FC<ContainerProps> = ({
       {showLightbox && (
         <ImageLightbox
           images={galleryImages}
-          labels={labels}
-          renderEditor={renderEditor}
+          {...lightboxProps}
           defaultIndex={Math.max(
             0,
             galleryImages.findIndex((i) => i.id === image.id),

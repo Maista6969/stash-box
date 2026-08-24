@@ -1,5 +1,5 @@
 import cx from "classnames";
-import { type FC, useMemo } from "react";
+import { useMemo } from "react";
 import { Form } from "react-bootstrap";
 import Select, { type OnChangeValue } from "react-select";
 
@@ -12,10 +12,17 @@ import type { TypedImage } from "./types";
 type ImageTypeGroup = ImageTypeGroupsQuery["imageTypeGroups"][number];
 type ImageType = ImageTypeGroup["types"][number];
 
-interface ImageLabelsProps {
+/**
+ * Everything this control touches. Stated structurally rather than as a
+ * TypedImage, so the upload form (which is labelling something that is not an
+ * image yet) can use the same control as the lightbox gallery
+ */
+type Labelling = Pick<TypedImage, "types" | "date">;
+
+interface ImageLabelsProps<T extends Labelling> {
   groups: ImageTypeGroup[];
-  value: TypedImage;
-  onChange: (value: TypedImage) => void;
+  value: T;
+  onChange: (value: T) => void;
 }
 
 const CLASSNAME = "EditImages-labels";
@@ -33,7 +40,11 @@ interface Option {
  * Groups are exclusive so for example picking a type like front view
  * will make this stop offering the side and back views
  */
-const ImageLabels: FC<ImageLabelsProps> = ({ groups, value, onChange }) => {
+const ImageLabels = <T extends Labelling>({
+  groups,
+  value,
+  onChange,
+}: ImageLabelsProps<T>) => {
   const { byKey, groupOf, rankOf, options } = useMemo(() => {
     const byKey = new Map<string, ImageType>();
     const groupOf = new Map<string, string>();

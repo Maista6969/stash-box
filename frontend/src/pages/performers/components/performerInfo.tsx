@@ -28,7 +28,7 @@ import {
   type PerformerFragment as Performer,
   usePerformer,
 } from "src/graphql";
-import { useCurrentUser, useImageTypeNames } from "src/hooks";
+import { useCurrentUser, useImageTypeVocabulary } from "src/hooks";
 import {
   createHref,
   formatBodyModifications,
@@ -41,7 +41,7 @@ const CLASSNAME = "PerformerInfo";
 const CLASSNAME_ACTIONS = "PerformerInfo-actions";
 
 const useImageLabels = (typedImages: Performer["typed_images"]) => {
-  const { typeName } = useImageTypeNames();
+  const { typeName } = useImageTypeVocabulary();
 
   return useMemo(
     () =>
@@ -249,7 +249,7 @@ export const PerformerInfo: FC<Props> = ({ performer }) => {
             size={600}
             alt="Performer"
             lightbox
-            labels={labels}
+            lightboxProps={{ labels }}
           />
         </Col>
       </Row>

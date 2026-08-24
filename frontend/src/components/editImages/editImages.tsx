@@ -2,17 +2,20 @@ import { CombinedGraphQLErrors } from "@apollo/client";
 import { faImages } from "@fortawesome/free-solid-svg-icons";
 import type { Lens } from "@hookform/lenses";
 import cx from "classnames";
-import { type ChangeEvent, type FC, useState } from "react";
+import { type ChangeEvent, type FC, useRef, useState } from "react";
 import { Button, Col, Form, Row } from "react-bootstrap";
 import { useFieldArray } from "react-hook-form";
 import { Image as ImageInput } from "src/components/form";
-import { Icon, LoadingIndicator } from "src/components/fragments";
+import { Icon } from "src/components/fragments";
 import {
+  type ImageCropInput,
+  type ImageTypeEnum,
   type ImageTypeScopeEnum,
   useAddImage,
   useImageTypeGroups,
 } from "src/graphql";
 
+import CropStep, { type CropStepHandle } from "./CropStep";
 import ImageLabels from "./ImageLabels";
 import type { TypedImage } from "./types";
 
@@ -22,8 +25,6 @@ const CLASSNAME_INPUT = `${CLASSNAME}-input`;
 const CLASSNAME_INPUT_CONTAINER = `${CLASSNAME_INPUT}-container`;
 const CLASSNAME_DROP = `${CLASSNAME}-drop`;
 const CLASSNAME_PLACEHOLDER = `${CLASSNAME}-placeholder`;
-const CLASSNAME_IMAGE = `${CLASSNAME}-image`;
-const CLASSNAME_UPLOADING = `${CLASSNAME_IMAGE}-uploading`;
 const CLASSNAME_IMAGE_ENTRY = `${CLASSNAME}-image-entry`;
 
 interface EditImagesProps {
@@ -87,17 +88,59 @@ const EditImages: FC<EditImagesProps> = ({
       ]),
   );
 
-  const [imageData, setImageData] = useState<string>("");
+  // The frame each image claims, so the lightbox can hold a picture against the
+  // template it says it follows and say when the two disagree. Read from form
+  // state like the labels are, so choosing a Crop takes effect without waiting
+  // for a round trip
+  //
+  // At most one applies: crops are an exclusive group, so an image cannot claim
+  // two templates, and the first match is the only match
+  const templates = new Map(
+    groups
+      .flatMap((group) => group.types)
+      .flatMap((type) =>
+        type.crop_template
+          ? [
+              [
+                type.key,
+                {
+                  aspectRatio: type.crop_template.aspect_ratio,
+                  guides: type.crop_template.guides,
+                  shapes: type.crop_template.shapes,
+                },
+              ] as const,
+            ]
+          : [],
+      ),
+  );
+  const cropTemplates = Object.fromEntries(
+    images.flatMap((i) => {
+      const claimed = i.types.map((t) => templates.get(t)).find(Boolean);
+      return claimed ? [[i.image.id, claimed] as const] : [];
+    }),
+  );
+
   const [uploading, setUploading] = useState(false);
   const [addImage] = useAddImage();
   const [error, setError] = useState<string>();
+  // Whether the pending upload is a crop, so the Upload button below - which
+  // does not know that on its own, since CropStep keeps the frame to itself
+  // - can call itself "Crop and upload" and offer Reset.
+  const [crops, setCrops] = useState(false);
+  const cropStep = useRef<CropStepHandle>(null);
 
-  const handleAddImage = () => {
+  // The crop and the label are chosen in one action, so the type arrives here
+  // already true of the image rather than as something to judge afterwards
+  const handleAddImage = (
+    crop: ImageCropInput | undefined,
+    types: ImageTypeEnum[],
+    imageDate: string | null,
+  ) => {
     setError("");
     setUploading(true);
     addImage({
       variables: {
-        imageData: { file },
+        imageData: { file, crop },
       },
     })
       .then((i) => {
@@ -107,12 +150,12 @@ const EditImages: FC<EditImagesProps> = ({
           ) {
             append({
               image: i.data.imageCreate,
-              types: [],
-              date: null,
+              types,
+              date: imageDate,
             });
           }
           setFile(undefined);
-          setImageData("");
+          setCrops(false);
         }
       })
       .catch((error: unknown) => {
@@ -125,37 +168,39 @@ const EditImages: FC<EditImagesProps> = ({
 
   const removeImage = () => {
     setFile(undefined);
+    setCrops(false);
     setError("");
-    setImageData("");
   };
 
   const onFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     if (event.target.validity.valid && event.target.files?.[0]) {
       setFile(event.target.files[0]);
-
-      const reader = new FileReader();
-      reader.onload = (e) =>
-        e.target?.result && setImageData(e.target.result as string);
-      reader.onerror = () => setImageData("");
-      reader.onabort = () => setImageData("");
-      reader.readAsDataURL(event.target.files[0]);
+      setError("");
     }
   };
 
   const isDisabled = maxImages !== undefined && images.length >= maxImages;
 
+  // Only true for images that can have labels and crop controls
+  const wantsRoom = file !== undefined && templates.size > 0;
+
   return (
     <Row className={`${CLASSNAME} w-100`}>
-      <Col xs={7} className={CLASSNAME_IMAGES}>
+      {/* Cropping wants room -- rotating and dragging a frame in a narrow
+          column is fiddly work. The gallery gives some up while a file is
+          staged and takes it back afterwards, which costs nothing: nobody is
+          browsing the gallery mid-upload. */}
+      <Col xs={wantsRoom ? 4 : 7} className={CLASSNAME_IMAGES}>
         {images.map((i, index) => (
           <div className={CLASSNAME_IMAGE_ENTRY} key={i.image.id}>
             <ImageInput
               image={i.image}
               lightboxImages={images.map((image) => image.image)}
               onRemove={() => remove(index)}
-              labels={labels}
-              renderEditor={
-                labellable
+              lightboxProps={{
+                labels,
+                cropTemplates,
+                renderEditor: labellable
                   ? (image) => {
                       const position = images.findIndex(
                         (candidate) => candidate.image.id === image.id,
@@ -173,23 +218,22 @@ const EditImages: FC<EditImagesProps> = ({
                         />
                       );
                     }
-                  : undefined
-              }
+                  : undefined,
+              }}
             />
           </div>
         ))}
       </Col>
-      <Col xs={5} className={CLASSNAME_INPUT}>
+      <Col xs={wantsRoom ? 8 : 5} className={CLASSNAME_INPUT}>
         <div className={CLASSNAME_INPUT_CONTAINER}>
           {file ? (
-            <div
-              className={cx(CLASSNAME_IMAGE, {
-                [CLASSNAME_UPLOADING]: uploading,
-              })}
-            >
-              <img src={imageData} alt="" />
-              <LoadingIndicator message="Uploading image..." />
-            </div>
+            <CropStep
+              ref={cropStep}
+              file={file}
+              groups={groups}
+              onCropsChange={setCrops}
+              onUpload={handleAddImage}
+            />
           ) : (
             !isDisabled && (
               <div className={CLASSNAME_DROP}>
@@ -212,25 +256,49 @@ const EditImages: FC<EditImagesProps> = ({
             )
           )}
         </div>
-        <Row className="text-end text-danger">
-          <div>{error}</div>
-        </Row>
-        <div className="mt-4 d-flex">
+        {error && <div className="text-danger text-end">{error}</div>}
+        <div
+          className={cx("mt-4 d-flex", {
+            [`${CLASSNAME}-actions-roomy`]: wantsRoom,
+          })}
+        >
           {file && (
             <>
               <Button
                 variant="danger"
-                onClick={() => removeImage()}
-                disabled={!file || uploading}
+                onClick={removeImage}
+                disabled={uploading}
               >
                 Remove
               </Button>
+
+              {/*
+                Only once something has been done to the picture. Reset puts
+                it back to the untouched file, so changing your mind is Reset
+                and then Upload -- the same two words, in the same places, as
+                before any of this existed.
+              */}
+              {crops && (
+                <Button
+                  variant="secondary"
+                  onClick={() => cropStep.current?.reset()}
+                  disabled={uploading}
+                  className="ms-2"
+                >
+                  Reset
+                </Button>
+              )}
+
               <Button
-                onClick={() => handleAddImage()}
-                disabled={!file || uploading}
+                onClick={() => cropStep.current?.upload()}
+                disabled={uploading}
                 className="ms-2"
               >
-                Upload
+                {uploading
+                  ? "Uploading..."
+                  : crops
+                    ? "Crop and upload"
+                    : "Upload"}
               </Button>
             </>
           )}

@@ -1,7 +1,8 @@
 import type { FC } from "react";
 import { Badge, Col, Row } from "react-bootstrap";
+import type { CropTemplateInfo } from "src/components/cropFrame";
 import ImageComponent from "src/components/image";
-import { useImageTypeNames } from "src/hooks";
+import { useImageTypeVocabulary } from "src/hooks";
 
 type Image = {
   height: number;
@@ -43,16 +44,25 @@ const ImageCell: FC<{
   change?: ImageAssignmentChange;
   gallery: Image[];
   labels: Record<string, string[]>;
+  cropTemplates: Record<string, CropTemplateInfo>;
   typeName: (key: string) => string;
   typeDescription: (key: string) => string | undefined;
-}> = ({ image, change, gallery, labels, typeName, typeDescription }) => (
+}> = ({
+  image,
+  change,
+  gallery,
+  labels,
+  cropTemplates,
+  typeName,
+  typeDescription,
+}) => (
   <div className={CLASSNAME_IMAGE}>
     <ImageComponent
       images={image}
       alt=""
       size="full"
       lightboxImages={gallery}
-      labels={labels}
+      lightboxProps={{ labels, cropTemplates }}
     />
     <div className="text-center">
       {image.width} x {image.height}
@@ -103,7 +113,7 @@ const ImageChangeRow: FC<ImageChangeRowProps> = ({
   resulting,
   showDiff = false,
 }) => {
-  const { typeName, typeDescription } = useImageTypeNames();
+  const { typeName, typeDescription, templateFor } = useImageTypeVocabulary();
 
   const added = (newImages ?? []).filter((image) => image !== null);
   const removed = (oldImages ?? []).filter((image) => image !== null);
@@ -121,8 +131,11 @@ const ImageChangeRow: FC<ImageChangeRowProps> = ({
   const gallery = [...added, ...relabelled, ...removed];
 
   const labels: Record<string, string[]> = {};
+  const cropTemplates: Record<string, CropTemplateInfo> = {};
   for (const entry of resulting ?? []) {
     labels[entry.image.id] = entry.types.map(typeName);
+    const template = templateFor(entry.types);
+    if (template) cropTemplates[entry.image.id] = template;
   }
 
   const cell = (image: Image) => (
@@ -132,6 +145,7 @@ const ImageChangeRow: FC<ImageChangeRowProps> = ({
       change={changeFor.get(image.id)}
       gallery={gallery}
       labels={labels}
+      cropTemplates={cropTemplates}
       typeName={typeName}
       typeDescription={typeDescription}
     />

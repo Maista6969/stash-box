@@ -147,7 +147,7 @@ describe("ImageLightbox (via Image)", () => {
   describe("labels", () => {
     const openLabelled = async (labels: Record<string, string[]>) => {
       const { user } = renderForm(
-        <ImageContainer images={THREE} lightbox labels={labels} />,
+        <ImageContainer images={THREE} lightbox lightboxProps={{ labels }} />,
       );
       await user.click(screen.getByRole("button"));
       return { user };
@@ -205,13 +205,15 @@ describe("ImageLightbox (via Image)", () => {
         <ImageContainer
           images={THREE}
           lightbox
-          labels={labels}
-          renderEditor={(image) => (
-            <>
-              <span data-testid="editing">{image.id}</span>
-              <input aria-label="Notes" />
-            </>
-          )}
+          lightboxProps={{
+            labels,
+            renderEditor: (image) => (
+              <>
+                <span data-testid="editing">{image.id}</span>
+                <input aria-label="Notes" />
+              </>
+            ),
+          }}
         />,
       );
       await user.click(screen.getByRole("button", { name: /3/ }));
