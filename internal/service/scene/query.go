@@ -9,7 +9,6 @@ import (
 	"github.com/gofrs/uuid"
 
 	"github.com/stashapp/stash-box/internal/auth"
-	"github.com/stashapp/stash-box/internal/converter"
 	"github.com/stashapp/stash-box/internal/models"
 	queryhelper "github.com/stashapp/stash-box/internal/service/query"
 )
@@ -27,7 +26,25 @@ func (s *Scene) QueryForPerformer(ctx context.Context, input models.SceneQueryIn
 		return nil, err
 	}
 
-	return queryhelper.ExecuteQuery(ctx, query, s.queries.DB(), converter.SceneToModel, "QueryScenes")
+	ids, err := queryhelper.ExecuteIDQuery(ctx, query, s.queries.DB(), "QueryScenes")
+	if err != nil {
+		return nil, err
+	}
+
+	scenePtrs, loadErrs := s.LoadIds(ctx, ids)
+	for _, loadErr := range loadErrs {
+		if loadErr != nil {
+			return nil, loadErr
+		}
+	}
+	scenes := make([]models.Scene, 0, len(scenePtrs))
+	for _, scene := range scenePtrs {
+		if scene != nil {
+			scenes = append(scenes, *scene)
+		}
+	}
+
+	return scenes, nil
 }
 
 func (s *Scene) QueryCount(ctx context.Context, input models.SceneQueryInput) (int, error) {
@@ -50,7 +67,7 @@ func (s *Scene) QueryCountForPerformer(ctx context.Context, input models.SceneQu
 }
 
 func (s *Scene) buildSceneQuery(psql sq.StatementBuilderType, input models.SceneQueryInput, performerID *uuid.UUID, userID uuid.UUID, forCount bool) (sq.SelectBuilder, error) {
-	query := psql.Select("scenes.*").From("scenes")
+	query := psql.Select("scenes.id").From("scenes")
 
 	// Scope to a single performer
 	if performerID != nil {
