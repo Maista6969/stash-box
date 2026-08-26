@@ -264,22 +264,14 @@ func (s *Scene) buildSceneQuery(psql sq.StatementBuilderType, input models.Scene
 		if !hasOtherFilters && !forCount {
 			// Optimize: limit the trending subquery directly
 			// Note: Use manual pagination here since we're limiting in the subquery
-			page := 1
-			perPage := 25
-			if input.Page > 0 {
-				page = input.Page
-			}
-			if input.PerPage > 0 {
-				perPage = input.PerPage
-			}
-			offset := (page - 1) * perPage
+			p := queryhelper.Pagination(input.Page, input.PerPage)
 
 			query = query.Join(fmt.Sprintf(`(
 				SELECT scene_id, trending_count AS count
 				FROM scene_popularity_trending
 				ORDER BY trending_count DESC, scene_id DESC
 				LIMIT %d OFFSET %d
-			) TRENDING ON scenes.id = TRENDING.scene_id`, perPage, offset))
+			) TRENDING ON scenes.id = TRENDING.scene_id`, p.Limit, p.Offset))
 			query = query.OrderBy("TRENDING.count DESC, TRENDING.scene_id DESC")
 			// Don't apply pagination again below since we already limited in the subquery
 		} else {
