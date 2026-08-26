@@ -1489,8 +1489,22 @@ export type Query = {
   findEdit?: Maybe<Edit>;
   /** Find a performer by ID */
   findPerformer?: Maybe<Performer>;
+  /**
+   * Find multiple performers by ID.
+   * The results are returned in the same order as the provided ids, with null in
+   * the place of any id that could not be found.
+   * A maximum of 100 ids may be requested at a time.
+   */
+  findPerformers: Array<Maybe<Performer>>;
   /** Find a scene by ID */
   findScene?: Maybe<Scene>;
+  /**
+   * Find multiple scenes by ID.
+   * The results are returned in the same order as the provided ids, with null in
+   * the place of any id that could not be found.
+   * A maximum of 100 ids may be requested at a time.
+   */
+  findScenes: Array<Maybe<Scene>>;
   /** Finds scenes that match a list of hashes */
   findScenesBySceneFingerprints: Array<Array<Maybe<Scene>>>;
   /** Find an external site by ID */
@@ -1498,12 +1512,26 @@ export type Query = {
   findSiteCategory?: Maybe<SiteCategory>;
   /** Find a studio by ID or name */
   findStudio?: Maybe<Studio>;
+  /**
+   * Find multiple studios by ID.
+   * The results are returned in the same order as the provided ids, with null in
+   * the place of any id that could not be found.
+   * A maximum of 100 ids may be requested at a time.
+   */
+  findStudios: Array<Maybe<Studio>>;
   /** Find a tag by ID or name */
   findTag?: Maybe<Tag>;
   /** Find a tag category by ID */
   findTagCategory?: Maybe<TagCategory>;
   /** Find a tag with a matching name or alias */
   findTagOrAlias?: Maybe<Tag>;
+  /**
+   * Find multiple tags by ID.
+   * The results are returned in the same order as the provided ids, with null in
+   * the place of any id that could not be found.
+   * A maximum of 100 ids may be requested at a time.
+   */
+  findTags: Array<Maybe<Tag>>;
   /** Find user by ID or username */
   findUser?: Maybe<User>;
   /** Returns phash clusters for a scene */
@@ -1562,8 +1590,20 @@ export type QueryFindPerformerArgs = {
 
 
 /** The query root for this schema */
+export type QueryFindPerformersArgs = {
+  ids: Array<Scalars['ID']['input']>;
+};
+
+
+/** The query root for this schema */
 export type QueryFindSceneArgs = {
   id: Scalars['ID']['input'];
+};
+
+
+/** The query root for this schema */
+export type QueryFindScenesArgs = {
+  ids: Array<Scalars['ID']['input']>;
 };
 
 
@@ -1593,6 +1633,12 @@ export type QueryFindStudioArgs = {
 
 
 /** The query root for this schema */
+export type QueryFindStudiosArgs = {
+  ids: Array<Scalars['ID']['input']>;
+};
+
+
+/** The query root for this schema */
 export type QueryFindTagArgs = {
   id?: InputMaybe<Scalars['ID']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
@@ -1608,6 +1654,12 @@ export type QueryFindTagCategoryArgs = {
 /** The query root for this schema */
 export type QueryFindTagOrAliasArgs = {
   name: Scalars['String']['input'];
+};
+
+
+/** The query root for this schema */
+export type QueryFindTagsArgs = {
+  ids: Array<Scalars['ID']['input']>;
 };
 
 
