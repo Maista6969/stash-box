@@ -21,6 +21,8 @@ const image = (id: string) => ({
   url: `url-${id}`,
   width: 100,
   height: 100,
+  types: [],
+  date: null,
 });
 
 // The form carries images wrapped with their labels so the diff unwraps them
@@ -54,7 +56,7 @@ const basePerformer = (
     hair_color: HairColorEnum.BLONDE,
     aliases: ["JD"],
     urls: [{ url: "https://a", site: site("1") }],
-    typed_images: [typedImage("img-1")],
+    images: [image("img-1")],
     tattoos: [{ location: "arm", description: "rose" }],
     piercings: [{ location: "ear", description: null }],
     ...overrides,

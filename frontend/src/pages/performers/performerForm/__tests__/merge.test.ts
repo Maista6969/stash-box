@@ -16,16 +16,11 @@ const site = (id: string) => ({
   icon: `icon-${id}`,
 });
 
-const image = (id: string) => ({
+const image = (id: string, ...types: ImageTypeEnum[]) => ({
   id,
   url: `url-${id}`,
   width: 100,
   height: 100,
-});
-
-// The merge prefill reads typed_images, since that is what carries labels
-const typedImage = (id: string, ...types: ImageTypeEnum[]) => ({
-  image: image(id),
   types,
   date: null,
 });
@@ -56,7 +51,6 @@ const performer = (
     aliases: [],
     urls: [],
     images: [],
-    typed_images: [],
     tattoos: [],
     piercings: [],
     ...overrides,
@@ -93,16 +87,16 @@ describe("buildPerformerMerge", () => {
     const target = performer("target", {
       name: "Jane",
       aliases: ["JD"],
-      typed_images: [typedImage("a", ImageTypeEnum.CROP_FACE)],
+      images: [image("a", ImageTypeEnum.CROP_FACE)],
       urls: [{ url: "https://x", site: site("1") }],
       tattoos: [{ location: "arm", description: "rose" }],
     });
     const source = performer("source", {
       name: "Janie",
       aliases: ["JD", "J"],
-      typed_images: [
-        typedImage("a", ImageTypeEnum.CROP_FACE),
-        typedImage("b", ImageTypeEnum.CROP_WIDE),
+      images: [
+        image("a", ImageTypeEnum.CROP_FACE),
+        image("b", ImageTypeEnum.CROP_WIDE),
       ],
       urls: [{ url: "https://x", site: site("1") }],
       tattoos: [
