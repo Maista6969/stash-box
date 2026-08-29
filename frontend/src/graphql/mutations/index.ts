@@ -146,6 +146,9 @@ import {
   UpdateEditCommentDocument,
   type UpdateEditCommentMutation,
   type UpdateEditCommentMutationVariables,
+  UpdateImageDocument,
+  type UpdateImageMutation,
+  type UpdateImageMutationVariables,
   UpdateImageTypeOrderDocument,
   type UpdateImageTypeOrderMutation,
   type UpdateImageTypeOrderMutationVariables,
@@ -234,6 +237,13 @@ export const useUpdateCategory = (
 export const useAddImage = (
   options?: useMutation.Options<AddImageMutation, AddImageMutationVariables>,
 ) => useMutation(AddImageDocument, options);
+
+export const useUpdateImage = (
+  options?: useMutation.Options<
+    UpdateImageMutation,
+    UpdateImageMutationVariables
+  >,
+) => useMutation(UpdateImageDocument, options);
 
 export const usePerformerEdit = (
   options?: useMutation.Options<
