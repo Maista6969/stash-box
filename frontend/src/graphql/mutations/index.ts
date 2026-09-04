@@ -104,6 +104,9 @@ import {
   PerformerEditUpdateDocument,
   type PerformerEditUpdateMutation,
   type PerformerEditUpdateMutationVariables,
+  RecropImageDocument,
+  type RecropImageMutation,
+  type RecropImageMutationVariables,
   RegenerateApiKeyDocument,
   type RegenerateApiKeyMutation,
   type RegenerateApiKeyMutationVariables,
@@ -244,6 +247,13 @@ export const useUpdateImage = (
     UpdateImageMutationVariables
   >,
 ) => useMutation(UpdateImageDocument, options);
+
+export const useRecropImage = (
+  options?: useMutation.Options<
+    RecropImageMutation,
+    RecropImageMutationVariables
+  >,
+) => useMutation(RecropImageDocument, options);
 
 export const usePerformerEdit = (
   options?: useMutation.Options<

@@ -3,6 +3,7 @@ import { Button, Modal } from "react-bootstrap";
 
 interface LabelLockWarningProps {
   show: boolean;
+  action: "apply" | "crop";
   willLockTypes: boolean;
   willLockDate: boolean;
   onConfirm: () => void;
@@ -17,6 +18,7 @@ interface LabelLockWarningProps {
  */
 const LabelLockWarning: FC<LabelLockWarningProps> = ({
   show,
+  action,
   willLockTypes,
   willLockDate,
   onConfirm,
@@ -24,10 +26,16 @@ const LabelLockWarning: FC<LabelLockWarningProps> = ({
 }) => {
   const message =
     willLockTypes && willLockDate
-      ? "Applying now locks in this image's labels and date. Only a moderator will be able to change either afterward, including adding a label to a group you haven't touched yet."
+      ? action === "crop"
+        ? "Saving this crop also applies this image's current labels and date, locking them in. Only a moderator will be able to change either afterward, including adding a label to a group you haven't touched yet."
+        : "Applying now locks in this image's labels and date. Only a moderator will be able to change either afterward, including adding a label to a group you haven't touched yet."
       : willLockTypes
-        ? "Applying now locks in this image's labels. Only a moderator will be able to change or add to them afterward, including a group you haven't touched yet."
-        : "Applying now locks in this image's date. Only a moderator will be able to change it afterward.";
+        ? action === "crop"
+          ? "Saving this crop also applies this image's current labels, locking them in. Only a moderator will be able to change or add to them afterward, including a group you haven't touched yet."
+          : "Applying now locks in this image's labels. Only a moderator will be able to change or add to them afterward, including a group you haven't touched yet."
+        : action === "crop"
+          ? "Saving this crop also applies this image's current date, locking it in. Only a moderator will be able to change it afterward."
+          : "Applying now locks in this image's date. Only a moderator will be able to change it afterward.";
 
   return (
     <Modal
@@ -46,7 +54,9 @@ const LabelLockWarning: FC<LabelLockWarningProps> = ({
         <Button variant="secondary" onClick={onCancel}>
           Cancel
         </Button>
-        <Button onClick={onConfirm}>Apply</Button>
+        <Button onClick={onConfirm}>
+          {action === "crop" ? "Save crop" : "Apply"}
+        </Button>
       </Modal.Footer>
     </Modal>
   );

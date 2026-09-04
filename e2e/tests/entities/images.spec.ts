@@ -249,6 +249,7 @@ test("performer image labels via UI: dropdowns and date reach the image directly
 test("performer page shows each image's labels", async ({
   editPage,
   moderatePage,
+  readPage,
 }) => {
   const admin = await adminApi();
   const performer = await createPerformer(admin, { name: uniq("GalleryPerf") });
@@ -286,14 +287,17 @@ test("performer page shows each image's labels", async ({
   await editPage.waitForURL(/\/edits\/[0-9a-f-]+/i, { timeout: 15_000 });
   await approveEdit(moderatePage, editPage.url().split("/").pop() ?? "");
 
-  await editPage.goto(`/performers/${performer.id}`);
-  await editPage.waitForLoadState("networkidle");
+  // A read-only viewer, not editPage: an EDIT-role session gets the inline
+  // label editor instead of the plain overlay this is checking for, since it
+  // can act on its own images directly (see useDirectLabelEditor).
+  await readPage.goto(`/performers/${performer.id}`);
+  await readPage.waitForLoadState("networkidle");
 
   // On the performer page the labels live over the image in the lightbox
   // rather than in a list beneath it: a labelled performer looks like an
   // unlabelled one until you go looking
-  await editPage.locator(".performer-photo button.Image").click();
-  const labels = editPage.locator(".ImageLightbox-main .ImageLightbox-labels");
+  await readPage.locator(".performer-photo button.Image").click();
+  const labels = readPage.locator(".ImageLightbox-main .ImageLightbox-labels");
   await expect(labels).toBeVisible();
   await expect(labels.getByText("Candid")).toBeVisible();
   await expect(labels.getByText("2021")).toBeVisible();

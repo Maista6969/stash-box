@@ -1,3 +1,13 @@
+$crop-gutter: min(7rem, 18%);
+// Fixed width of the Classification/Metadata column CropStep renders beside
+// the picture -- doesn't grow with the viewport (see &-columns, which is
+// where the breakout actually happens, in the picture's favor)
+//
+// Floored by &-date-group's own fixed 13rem width in ImageLabelsMetadata,
+// not by the action row below anymore: that spans the whole crop column
+// on its own, independent of this
+$panels-width: 16rem;
+
 .EditImages {
   &-drop {
     align-items: center;
@@ -226,5 +236,68 @@
         opacity: 1;
       }
     }
+  }
+
+  &-actions-roomy {
+    padding-left: $crop-gutter;
+  }
+}
+
+.RecropEditor {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  width: 100%;
+
+  &-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    margin-top: 0.75rem;
+  }
+}
+
+.CropStep {
+  flex: 1;
+  min-width: 0;
+
+  &-columns {
+    align-items: flex-start;
+    display: flex;
+    gap: 1.5rem;
+    margin-right: calc(-1 * max(0px, (100vw - 1200px) / 2));
+    width: calc(100% + max(0px, (100vw - 1200px) / 2));
+  }
+
+  &-image {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &-card {
+    background-color: rgba($dark, 15%);
+    border: 1px solid $secondary;
+    border-radius: 4px;
+  }
+
+  &-panels {
+    display: flex;
+    flex: 0 0 $panels-width;
+    flex-direction: column;
+    gap: 1rem;
+    min-width: 0;
+  }
+
+  &-roomy &-image {
+    padding-left: $crop-gutter;
+  }
+
+  &-loading {
+    align-items: center;
+    display: flex;
+    justify-content: center;
+    min-height: 200px;
+    text-align: center;
   }
 }

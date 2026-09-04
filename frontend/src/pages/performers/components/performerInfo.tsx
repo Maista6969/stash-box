@@ -2,6 +2,7 @@ import { faCodeMerge } from "@fortawesome/free-solid-svg-icons";
 import { type FC, useMemo } from "react";
 import { Button, Card, Col, Row, Table } from "react-bootstrap";
 import { Link } from "react-router-dom";
+import { useDirectLabelEditor } from "src/components/editImages/useDirectLabelEditor";
 import {
   FavoriteStar,
   GenderIcon,
@@ -25,11 +26,11 @@ import {
 } from "src/constants/route";
 import {
   GenderEnum,
+  ImageTypeScopeEnum,
   type PerformerFragment as Performer,
   usePerformer,
 } from "src/graphql";
-import { useCurrentUser } from "src/hooks";
-import { useImageTypeNames } from "src/hooks/useImageTypeNames";
+import { useCurrentUser, useImageTypeVocabulary } from "src/hooks";
 import {
   createHref,
   formatBodyModifications,
@@ -42,7 +43,7 @@ const CLASSNAME = "PerformerInfo";
 const CLASSNAME_ACTIONS = "PerformerInfo-actions";
 
 const useImageLabels = (images: Performer["images"]) => {
-  const { typeName } = useImageTypeNames();
+  const { typeName } = useImageTypeVocabulary();
 
   return useMemo(
     () =>
@@ -111,6 +112,10 @@ export const PerformerInfo: FC<Props> = ({ performer }) => {
     !performer.merged_into_id,
   );
   const labels = useImageLabels(performer.images);
+  const { renderEditor, lockWarning } = useDirectLabelEditor(
+    ImageTypeScopeEnum.PERFORMER,
+    performer.images,
+  );
 
   return (
     <div className={CLASSNAME}>
@@ -245,10 +250,11 @@ export const PerformerInfo: FC<Props> = ({ performer }) => {
             size={600}
             alt="Performer"
             lightbox
-            labels={labels}
+            lightboxProps={{ labels, renderEditor }}
           />
         </Col>
       </Row>
+      {lockWarning}
     </div>
   );
 };
