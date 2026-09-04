@@ -1,6 +1,8 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import {
   BreastTypeEnum,
+  CropGuideAxisEnum,
+  CropGuideRoleEnum,
   EthnicityEnum,
   EyeColorEnum,
   GenderEnum,
@@ -332,6 +334,30 @@ describe("added/removed images", () => {
     expect(within(row).getByText("Added")).toBeInTheDocument();
   });
 
+  // originalImage is only ever set when stash-box's own cropper produced the
+  // image -- at upload or via a later re-crop -- so its presence is what
+  // tells that apart from a manual remove-and-add of an already-externally-
+  // cropped file, which this edit's diff otherwise renders identically.
+  it("flags an added image as cropped when it carries a retained original", () => {
+    const cropped = {
+      ...image("img-cropped"),
+      originalImage: { url: "url-original" },
+    };
+    render({ added_images: [cropped] }, undefined, true);
+
+    const row = rowFor("Images");
+    const link = within(row).getByRole("link", { name: /view original/i });
+    expect(link).toHaveAttribute("href", "url-original");
+    expect(link).toHaveAttribute("title", expect.stringMatching(/cropped/i));
+  });
+
+  it("does not flag an added image with no retained original as cropped", () => {
+    render({ added_images: [image("img-plain")] }, undefined, true);
+
+    const row = rowFor("Images");
+    expect(within(row).queryByText(/cropped/i)).not.toBeInTheDocument();
+  });
+
   it("renders nothing when nothing about the images changed", () => {
     render({ added_images: [], removed_images: [] }, undefined, true);
     expect(screen.queryByText("Images")).not.toBeInTheDocument();
@@ -400,6 +426,20 @@ describe("the lightbox opened from an edit diff", () => {
                 description: null,
                 enabled: true,
                 conflicts_with: [],
+                crop_template: {
+                  __typename: "CropTemplate" as const,
+                  aspect_ratio: 2 / 3,
+                  guides: [
+                    {
+                      __typename: "CropGuide" as const,
+                      axis: CropGuideAxisEnum.Y,
+                      position: 0.397,
+                      role: CropGuideRoleEnum.REFERENCE,
+                      label: "Bisects the eyes",
+                      pivot: true,
+                    },
+                  ],
+                },
               },
             ],
           },
@@ -438,6 +478,20 @@ describe("the lightbox opened from an edit diff", () => {
     await waitFor(() =>
       expect(within(modal).getByText("Face")).toBeInTheDocument(),
     );
+  });
+
+  // The frame the image claims. Without the template the toggle has nothing to
+  // draw and does not appear, so its presence is the wiring working
+  it("offers the guides for an image that claims a crop template", async () => {
+    const user = await openLightbox();
+
+    const modal = document.querySelector(".modal") as HTMLElement;
+    const toggle = await waitFor(() =>
+      within(modal).getByRole("button", { name: "Show guides" }),
+    );
+
+    await user.click(toggle);
+    expect(document.querySelector(".CropOverlay")).toBeInTheDocument();
   });
 
   // The reviewer is not editing. The lightbox becomes an editor only when it
