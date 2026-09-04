@@ -923,7 +923,7 @@ func (q *Queries) GetEditsByTag(ctx context.Context, tagID uuid.UUID) ([]Edit, e
 }
 
 const getImagesForEdit = `-- name: GetImagesForEdit :many
-SELECT i.id, i.url, i.width, i.height, i.checksum, i.date FROM edit_final_images fi
+SELECT i.id, i.url, i.width, i.height, i.checksum, i.date, i.original_image_id FROM edit_final_images fi
 JOIN images i ON fi.image_id = i.id
 WHERE fi.edit_id = $1
 ORDER BY i.id
@@ -946,6 +946,7 @@ func (q *Queries) GetImagesForEdit(ctx context.Context, editID uuid.UUID) ([]Ima
 			&i.Height,
 			&i.Checksum,
 			&i.Date,
+			&i.OriginalImageID,
 		); err != nil {
 			return nil, err
 		}

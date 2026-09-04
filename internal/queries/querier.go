@@ -245,6 +245,8 @@ type Querier interface {
 	// pending edit predating image types has no such key, and jsonb_array_elements
 	// is STRICT, so a set-returning function given NULL yields zero rows rather
 	// than erroring. Keep added_images a flat UUID array for the same reason.
+	// An image kept only as another image's retained original is not unused: it
+	// backs a real recrop target, even though nothing links to it directly.
 	FindUnusedImages(ctx context.Context) ([]Image, error)
 	FindUser(ctx context.Context, id uuid.UUID) (User, error)
 	FindUserByEmail(ctx context.Context, upper interface{}) (User, error)

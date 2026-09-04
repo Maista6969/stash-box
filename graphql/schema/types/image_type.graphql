@@ -127,6 +127,75 @@ type ImageType {
   offering the second once the first is chosen.
   """
   conflicts_with: [ImageTypeEnum!]!
+  """
+  The frame to crop to for this type, or null if the instance has no template
+  for it. Only crops have one - nothing about a pose or a state of dress says
+  anything about the shape of the picture
+  """
+  crop_template: CropTemplate
+}
+
+"""
+A crop frame, read from a Photoshop template
+
+The template file is the source of truth: the guides drawn over the cropping
+tool and the .psd a contributor can download for their own editor are the same
+bytes, so the two cannot drift
+"""
+type CropTemplate {
+  """
+  Width over height, taken from the template's canvas rather than set
+  anywhere
+  """
+  aspect_ratio: Float!
+  guides: [CropGuide!]!
+}
+
+"""One guide line of a crop template"""
+type CropGuide {
+  axis: CropGuideAxisEnum!
+  """
+  Where the line sits, as a fraction of the canvas along its axis: 0 is the
+  left or top edge, 1 the right or bottom. A fraction rather than a pixel
+  because a template is drawn at one size and rendered at every other
+  """
+  position: Float!
+  """
+  How closely the line is meant to be followed, where the template says. An
+  anchor is meant to be hit; a reference is for judgement and balance
+  """
+  role: CropGuideRoleEnum
+  """
+  What the line is for, like "bisects the eyes", "where the thighs meet", or
+  null when the template does not name it
+  """
+  label: String
+  """
+  Whether a frame is resized around this line when the contributor holds
+  Shift
+
+  Independent of `role`, which says how closely a line is meant to be
+  followed. A headshot's eye line is the softest line in its template (like the
+  head and chin can be hard limits) and is still the right thing to turn a
+  resize about, so the two cannot be the same field
+
+  At most one guide per axis carries it. A template naming none on an axis
+  resizes about the centre there
+  """
+  pivot: Boolean!
+}
+
+enum CropGuideAxisEnum {
+  """A vertical line, positioned across the width"""
+  X
+  """A horizontal line, positioned down the height"""
+  Y
+}
+
+enum CropGuideRoleEnum {
+  ANCHOR
+  REFERENCE
+  MARGIN
 }
 
 """

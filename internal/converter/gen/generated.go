@@ -513,6 +513,7 @@ func (c *ModelConverterImpl) ConvertImage(source queries.Image) models.Image {
 		xstring2 := *source.Date
 		modelsImage.Date = &xstring2
 	}
+	modelsImage.OriginalImageID = c.uuidNullUUIDToUuidNullUUID2(source.OriginalImageID)
 	return modelsImage
 }
 func (c *ModelConverterImpl) ConvertImages(source []queries.Image) []models.Image {

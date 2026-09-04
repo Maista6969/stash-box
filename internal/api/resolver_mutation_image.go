@@ -14,6 +14,10 @@ func (r *mutationResolver) ImageUpdate(ctx context.Context, input models.ImageUp
 	return r.services.Image().Update(ctx, input)
 }
 
+func (r *mutationResolver) ImageRecrop(ctx context.Context, input models.ImageRecropInput) (*models.Image, error) {
+	return r.services.Image().Recrop(ctx, input)
+}
+
 func (r *mutationResolver) ImageDestroy(ctx context.Context, input models.ImageDestroyInput) (bool, error) {
 	err := r.services.Image().Destroy(ctx, input.ID)
 

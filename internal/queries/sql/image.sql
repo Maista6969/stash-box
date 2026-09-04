@@ -1,8 +1,8 @@
 -- Image queries
 
 -- name: CreateImage :one
-INSERT INTO images (id, url, width, height, checksum, date)
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO images (id, url, width, height, checksum, date, original_image_id)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 RETURNING *;
 
 -- name: UpdateImage :one
@@ -51,11 +51,15 @@ LEFT JOIN (
     SELECT id, (data->>'image')::uuid AS image_id
     FROM drafts
 ) drafts ON images.id = drafts.image_id
+-- An image kept only as another image's retained original is not unused: it
+-- backs a real recrop target, even though nothing links to it directly.
+LEFT JOIN images derived ON derived.original_image_id = images.id
 WHERE scene_images.scene_id IS NULL
 AND performer_images.performer_id IS NULL
 AND studio_images.studio_id IS NULL
 AND edit_images.image_id IS NULL
 AND drafts.id IS NULL
+AND derived.id IS NULL
 LIMIT 1000;
 
 -- name: IsImageUnused :one
@@ -72,12 +76,14 @@ LEFT JOIN (
     SELECT id, (data->>'image')::uuid AS image_id
     FROM drafts
 ) drafts ON images.id = drafts.image_id
+LEFT JOIN images derived ON derived.original_image_id = images.id
 WHERE images.id = $1
 AND scene_images.scene_id IS NULL
 AND performer_images.performer_id IS NULL
 AND studio_images.studio_id IS NULL
 AND edit_images.image_id IS NULL
-AND drafts.id IS NULL;
+AND drafts.id IS NULL
+AND derived.id IS NULL;
 
 -- name: FindImageIdsBySceneIds :many
 SELECT scene_images.scene_id, scene_images.image_id

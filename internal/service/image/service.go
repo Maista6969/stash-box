@@ -20,6 +20,10 @@ import (
 	"github.com/stashapp/stash-box/internal/storage"
 )
 
+const maxUploadBytes = int64(10 * 1024 * 1024)
+
+var errUploadTooBig = errors.New("file too big")
+
 type Image struct {
 	queries *queries.Queries
 	withTxn queries.WithTxnFunc
@@ -40,16 +44,56 @@ func (s *Image) WithTxn(fn func(*queries.Queries) error) error {
 func (s *Image) Create(ctx context.Context, input models.ImageCreateInput) (*models.Image, error) {
 	// handle image upload
 	if input.File != nil {
-		if input.File.Size > int64(10*1024*1024) {
-			return nil, errors.New("file too big")
+		if input.File.Size > maxUploadBytes {
+			return nil, errUploadTooBig
 		}
 
+		// ReadFull rather than Read: a single Read may return early on a
+		// multipart upload, and a short read here yields a truncated image
+		// that still decodes and then gets cropped and stored as the master
 		file := make([]byte, input.File.Size)
-		if _, err := input.File.File.Read(file); err != nil {
+		if _, err := io.ReadFull(input.File.File, file); err != nil {
 			return nil, err
 		}
 
-		return s.storeFile(ctx, file, input.URL, input.Types, input.Date)
+		// Before the checksum, so everything downstream - deduplication,
+		// dimensions, what gets written - is about the image that will
+		// actually exist. Two contributors cropping the same source to the
+		// same frame produce the same bytes and land as one image, which is
+		// the property a crop done in the browser would quietly lose
+		if input.Crop != nil {
+			cropped, changed, err := cropUpload(file, *input.Crop)
+			if err != nil {
+				return nil, err
+			}
+			// Checked again on the way out: the limit is about what gets
+			// stored, and re-encoding is not guaranteed to shrink what it was
+			// given. Straightening a flat PNG can grow it outright
+			if int64(len(cropped)) > maxUploadBytes {
+				return nil, errUploadTooBig
+			}
+
+			// An identity crop keeps the whole upload, so there is no
+			// narrower framing to retain anything behind - store it exactly
+			// like an upload with no crop at all
+			if !changed {
+				return s.storeFile(ctx, cropped, input.URL, input.Types, input.Date, nil, uuid.NullUUID{})
+			}
+
+			// The upload itself, retained uncategorized so a future recrop
+			// can frame it again rather than being stuck re-cropping what
+			// this request kept. Deduplicated the same way the cropped
+			// result is below, so two contributors cropping the same source
+			// to different frames share one original
+			original, err := s.storeFile(ctx, file, nil, nil, nil, nil, uuid.NullUUID{})
+			if err != nil {
+				return nil, err
+			}
+
+			return s.storeFile(ctx, cropped, input.URL, input.Types, input.Date, nil, uuid.NullUUID{UUID: original.ID, Valid: true})
+		}
+
+		return s.storeFile(ctx, file, input.URL, input.Types, input.Date, nil, uuid.NullUUID{})
 	}
 
 	if input.URL == nil {
@@ -104,11 +148,16 @@ func newImageID() (uuid.UUID, error) {
 	return id, nil
 }
 
-// storeFile writes uploaded bytes as a new image, deduplicating by
-// checksum. A checksum match means this is not actually a new image: its
-// existing categorization is left untouched rather than overwritten by what
-// this write asked for.
-func (s *Image) storeFile(ctx context.Context, file []byte, url *string, types []models.ImageTypeEnum, date *string) (*models.Image, error) {
+// storeFile writes image bytes as a new image, deduplicating by checksum.
+// Shared by Create's upload path (cropped or not), its retained-original
+// write, and Recrop. A checksum match means this is not actually a new
+// image: its existing categorization is left untouched rather than
+// overwritten by what this write asked for.
+//
+// assigned is what the image these bytes derive from already carried, so a
+// recrop can restate a label that has since been disabled without being
+// rejected, the same grandfathering Update applies; nil for a fresh upload.
+func (s *Image) storeFile(ctx context.Context, file []byte, url *string, types []models.ImageTypeEnum, date *string, assigned imagetype.AssignedTypes, originalImageID uuid.NullUUID) (*models.Image, error) {
 	fileReader := bytes.NewReader(file)
 
 	checksum, err := calculateChecksum(fileReader)
@@ -142,7 +191,7 @@ func (s *Image) storeFile(ctx context.Context, file []byte, url *string, types [
 		return nil, err
 	}
 
-	if err := imagetype.ValidateImageAssignment(ctx, s.queries, newImage.ID, types, date, nil); err != nil {
+	if err := imagetype.ValidateImageAssignment(ctx, s.queries, newImage.ID, types, date, assigned); err != nil {
 		return nil, err
 	}
 
@@ -150,12 +199,13 @@ func (s *Image) storeFile(ctx context.Context, file []byte, url *string, types [
 	err = s.withTxn(func(tx *queries.Queries) error {
 		var err error
 		dbImage, err = tx.CreateImage(ctx, queries.CreateImageParams{
-			ID:       newImage.ID,
-			Checksum: newImage.Checksum,
-			Width:    newImage.Width,
-			Height:   newImage.Height,
-			Url:      newImage.RemoteURL,
-			Date:     newImage.Date,
+			ID:              newImage.ID,
+			Checksum:        newImage.Checksum,
+			Width:           newImage.Width,
+			Height:          newImage.Height,
+			Url:             newImage.RemoteURL,
+			Date:            newImage.Date,
+			OriginalImageID: originalImageID,
 		})
 		if err != nil {
 			return err
@@ -228,6 +278,90 @@ func (s *Image) Update(ctx context.Context, input models.ImageUpdateInput) (*mod
 	}
 
 	return converter.ImageToModelPtr(dbImage), nil
+}
+
+// Recrop cuts a new frame from an image's retained original when one exists,
+// falling back to its own stored bytes, and always produces a new row rather
+// than mutating the source: a stored image may in principle be shared by
+// more than one entity via checksum deduplication.
+//
+// types/date default to the source's current values when omitted; an
+// explicit value replaces them on the new row instead, which is what lets
+// labelling a never-before-categorized image and cropping it to match stay
+// one EDIT-level action. The MODERATE gate is evaluated against the source's
+// state as it stood before this call, the same rule Update applies.
+func (s *Image) Recrop(ctx context.Context, input models.ImageRecropInput) (*models.Image, error) {
+	source, err := s.Find(ctx, input.ImageID)
+	if err != nil {
+		return nil, err
+	}
+	if source == nil {
+		return nil, errors.New("image not found")
+	}
+
+	assigned, err := imagetype.ImageAssignedTypes(ctx, s.queries, source.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(assigned) > 0 || source.Date != nil {
+		if err := auth.ValidateRole(ctx, models.RoleEnumModerate); err != nil {
+			return nil, err
+		}
+	}
+
+	types := input.Types
+	if types == nil {
+		types = make([]models.ImageTypeEnum, 0, len(assigned))
+		for t := range assigned {
+			types = append(types, t)
+		}
+	}
+	date := input.Date
+	if date == nil {
+		date = source.Date
+	}
+
+	// Resolve the material to crop from before reading bytes: if the source
+	// already has a retained original, that is always better material than
+	// the source's own (already-cropped) bytes. Chains stay flat by
+	// resolving here rather than linking to the source - a second recrop of
+	// a recrop still points at the same original a first recrop found,
+	// never a chain of narrower and narrower intermediates.
+	cropTarget := source
+	originalImageID := source.OriginalImageID
+	if originalImageID.Valid {
+		cropTarget, err = s.Find(ctx, originalImageID.UUID)
+		if err != nil {
+			return nil, err
+		}
+		if cropTarget == nil {
+			return nil, errors.New("original image not found")
+		}
+	} else {
+		originalImageID = uuid.NullUUID{UUID: source.ID, Valid: true}
+	}
+
+	reader, _, err := s.Read(*cropTarget)
+	if err != nil {
+		return nil, err
+	}
+	defer reader.Close()
+
+	file, err := io.ReadAll(reader)
+	if err != nil {
+		return nil, err
+	}
+
+	cropped, _, err := cropUpload(file, *input.Crop)
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(cropped)) > maxUploadBytes {
+		return nil, errUploadTooBig
+	}
+
+	return s.storeFile(ctx, cropped, nil, types, date, assigned, originalImageID)
 }
 
 func (s *Image) Destroy(ctx context.Context, id uuid.UUID) error {

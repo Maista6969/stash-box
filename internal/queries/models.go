@@ -163,12 +163,13 @@ type Fingerprint struct {
 }
 
 type Image struct {
-	ID       uuid.UUID `db:"id" json:"id"`
-	Url      *string   `db:"url" json:"url"`
-	Width    int       `db:"width" json:"width"`
-	Height   int       `db:"height" json:"height"`
-	Checksum string    `db:"checksum" json:"checksum"`
-	Date     *string   `db:"date" json:"date"`
+	ID              uuid.UUID     `db:"id" json:"id"`
+	Url             *string       `db:"url" json:"url"`
+	Width           int           `db:"width" json:"width"`
+	Height          int           `db:"height" json:"height"`
+	Checksum        string        `db:"checksum" json:"checksum"`
+	Date            *string       `db:"date" json:"date"`
+	OriginalImageID uuid.NullUUID `db:"original_image_id" json:"original_image_id"`
 }
 
 type ImageType struct {

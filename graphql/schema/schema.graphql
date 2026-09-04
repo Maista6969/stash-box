@@ -166,6 +166,12 @@ type Mutation {
   current state rather than expressed here.
   """
   imageUpdate(input: ImageUpdateInput!): Image @hasRole(role: EDIT)
+  """
+  Re-crops an existing image. Same role rule as imageUpdate, checked against
+  the source image's current state: EDIT is enough for an uncategorized image,
+  MODERATE is required once it already carries labels or a date.
+  """
+  imageRecrop(input: ImageRecropInput!): Image @hasRole(role: EDIT)
   imageDestroy(input: ImageDestroyInput!): Boolean! @hasRole(role: MODIFY)
 
   """User interface for registering"""
